@@ -1,4 +1,5 @@
 name = Custom CSV Parser
 description = Custom csv parser for any entity type.
+dependencies[] = entity
 package = "Development"
 core = "7.x"
