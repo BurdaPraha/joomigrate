@@ -1,4 +1,0 @@
-name = Custom CSV Parser
-description = Custom csv parser for any entity type.
-package = "Development"
-core = "7.x"
