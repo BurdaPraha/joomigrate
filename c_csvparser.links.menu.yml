@@ -1,0 +1,4 @@
+csv_parser_form:
+  title: 'CSV Parser Form'
+  description: 'Callback for generating form.'
+  route_name: csv_parser_form
