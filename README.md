@@ -9,7 +9,7 @@ This module should be only used by drupal developer.
 
 ### Who do I talk to? ###
 
-* Drupal eveloper
+* Drupal developer
 
 ### Why not [**feeds**](https://www.drupal.org/project/feeds)? ###
 
