@@ -1,23 +1,6 @@
 <?php
 
-//function _c_csvparser_entity_create($data, $counter) {
-//  global $user;
-//
-//  // entity type where the data will be saved
-//  $entity_type = 'node';
-//  $entity = entity_create($entity_type, array('type' => 'csv_parser'));
-//  $wrapper = entity_metadata_wrapper($entity_type, $entity);
-//
-//  //Populating properties
-//  $wrapper->uid = $user->uid;
-//  $wrapper->title = $data[1] .' - '. $data[0];
-//  $wrapper->created = $wrapper->changed  = time();
-//  $wrapper->created = $wrapper->created  = time();
-//
-//  //Field property
-//  $wrapper->field_text_test->set((string)$data[1]);
-//  $wrapper->field_number_test->set(200);
-//
-//  //And finally we save
-//  $wrapper->save();
-//}
+/**
+ * @file
+ * Intentionnaly left empty.
+ */

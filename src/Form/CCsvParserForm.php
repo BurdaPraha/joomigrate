@@ -14,6 +14,7 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\field\Entity\FieldConfig;
+use geoPHP;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -171,13 +172,12 @@ class CCsvParserForm extends FormBase {
         // Avoiding the first row because it contain the title.
         if ($send_counter != 0) {
           //Add your function create here
-          $this->create($row, $send_counter);
+          $this->createEntity($row, $send_counter);
         }
-        $row_result[] = $row;
         $send_counter++;
       }
     }
-    $tmp = $row_result;
+//    $tmp = $geoms;
   }
 
   /**
@@ -187,7 +187,12 @@ class CCsvParserForm extends FormBase {
   public function createEntity($values, $counter = 0) {
     $uid = 1;
     $node_type = 'page';
-    $title = 'random title - '.$counter;
+    $title = $values[1]; //'random title - '.$counter;
+    $body = array(
+      'value' => '<p>Vivamus suscipit tortor eget felis porttitor volutpat. Donec sollicitudin molestie malesuada.
+Donec rutrum congue leo eget malesuada. Nulla quis lorem ut libero malesuada feugiat. Proin eget tortor risus.</p>',
+      'format' => 'basic_html'
+    );
 
     $node = $this->nodeStorage->create(array(
       'nid' => NULL,
@@ -201,11 +206,37 @@ class CCsvParserForm extends FormBase {
       'langcode' => 'en'
     ));
 
-    $node->body = array(
-      'value' => '<p>Vivamus suscipit tortor eget felis porttitor volutpat. Donec sollicitudin molestie malesuada.
-Donec rutrum congue leo eget malesuada. Nulla quis lorem ut libero malesuada feugiat. Proin eget tortor risus.</p>',
-      'format' => 'filtered_html'
-    );
+    // Various field type.Life is not popular in upstairs, the next world, or order, but everywhere.
+    $node->body = $body;
+    $geom = array();
+    if (isset($values[3])) {
+      $json_string = (string)$values[3];
+      $json_string = str_replace('=>', ':', $json_string);
+      $is_json = json_decode($json_string);
+      if ($is_json) {
+        \Drupal::service('geophp.geophp');
+        $geom = geoPHP::load($json_string);
+
+        if (!empty($geom)) {
+          $centroid = $geom->getCentroid();
+          $bounding = $geom->getBBox();
+          $node->field_geofield = array(
+            'value' => $geom->out('wkt'),
+            'geo_type' => $geom->geometryType(),
+            'lon' => $centroid->getX(),
+            'lat' => $centroid->getY(),
+            'left' => $bounding['minx'],
+            'top' => $bounding['maxy'],
+            'right' => $bounding['maxx'],
+            'bottom' =>  $bounding['miny'],
+            'geohash' => $geom->out('geohash'),
+          );
+        }
+      }
+    }
+
     $node->save();
+
+//    return $geom;
   }
 }
