@@ -85,14 +85,21 @@ function c_csvparser_form_submit($form, &$form_state) {
   
   // start count of imports for this upload
   $send_counter = 0;
-
+  // make sure you adapt yourheaders accordingly
+  $csv_headers = array(
+    'registration', 'salutation', 'fname', 'lname', 'title', 'organization', 'department',
+    'address_1', 'address_2', 'address_city', 'address_province', 'address_postal_code', 'telephone',
+    'extension', 'cell', 'fax', 'email', 'website', 'category', 'keywords'
+  );
   while ($row = fgetcsv($handle, $line_max, ',')) {
     // $row is an array of elements in each row
     // Avoiding the first row because it contain the title.
     // @todo may be add a checkbox in c_csvparser_form signifing if first row is heading
+    $data = array_combine($csv_headers, $row);
     if ($send_counter != 0) {
       //Add your function create here
-      c_csvparser_entity_create($row, $send_counter);
+      //c_csvparser_entity_create($row, $send_counter);
+      c_csvparser_entity_create_stc($data, $send_counter);
     }
     $send_counter++;
   }
@@ -119,4 +126,195 @@ function c_csvparser_entity_create($data, $counter) {
   
   //And finally we save
   $wrapper->save();
+}
+
+function c_csvparser_entity_create_stc($data, $counter) {
+	// get organization category
+	$category_fields = array(
+		'field_comdir_category_abbr' => $data['category']
+	);
+	$category = c_csvparser_entity_load_create('load', 'taxonomy_term', 'commercial_directory_category', array(), $category_fields, 'fields');
+
+	// get/create organization
+	$organization_properties = array(
+		'title' => $data['organization']
+	);
+	$organization_fields = array(
+		'field_mbr_org_category' => $category ? intval($category->tid->value()) : 0,
+		'field_mbr_website' => array('url' => $data['website'], 'title' => ''),
+		'field_org_status' => 1,
+	);
+
+	$wrapped_organization = c_csvparser_entity_load_create('both', 'group', 'organization', $organization_properties, $organization_fields);
+	$account = user_load_by_mail($data['email']);
+	if (!isset($account->uid) && $wrapped_organization && $gid = $wrapped_organization->gid->value()) {
+		// create new user
+		$role = user_role_load_by_name('organization member');
+		$newUser = array(
+			'mail' => $data['email'],
+			'name' => c_csvparser_get_new_username_from_email($data['email']),
+			'status' => 0,
+			'roles' => $role ? array($role->rid => $role->name) : array(),
+		);
+		$account = user_save(Null, $newUser);
+
+		if ($account) {
+			//add user to organization
+			$organization = group_load($gid);
+			$organization->addMember($account->uid, array(
+				'added_by' => 1,
+				'joined_on' => REQUEST_TIME
+			));
+
+			//Create user profile
+			$profile_properties = array(
+				'uid' => $account->uid,
+				'label' => 'Membership',
+				'created' => REQUEST_TIME,
+				'changed' => REQUEST_TIME
+			);
+			$profile_fields = array(
+				'field_mbr_name' => array(
+					'title' => $data['salutation'],
+					'given' => $data['fname'],
+					'family' => $data['lname']
+				),
+				'field_mbr_title' => $data['title'],
+				'field_mbr_email' => $data['email'],
+				'field_profile_organization' => intval($gid),
+				'field_mbr_department' => $data['department'],
+				'field_mbr_org_address' => array(
+					'country' => strpos($data['address_postal_code'], 'USA') === FALSE ? 'CA' : 'US',
+					'thoroughfare' => $data['address_1'],
+					'premise' => $data['address_2'],
+					'locality' => $data['address_city'],
+					'administrative_area' => $data['address_province'],
+					'postal_code' => $data['address_postal_code']
+				),
+				'field_mbr_phone' => $data['telephone'],
+				'field_mbr_extension' => $data['extension'],
+				'field_mbr_cell' => $data['cell'],
+				'field_mbr_fax' => $data['fax'],
+				'field_mbr_registration' => $data['registration']
+			);
+			$profile = c_csvparser_entity_load_create('create', 'profile2', 'membership', $profile_properties, $profile_fields);
+		}
+	}
+}
+
+function c_csvparser_entity_load_create($op = 'both', $entity_type, $bundle, $properties, $fields = array(), $filter_by = 'property') {
+	$wrapped_entity = array();
+	// Loading
+	if ($op == 'both' || $op == 'load') {
+		$query = new EntityFieldQuery();
+
+		$query->entityCondition('entity_type', $entity_type)
+			->entityCondition('bundle', $bundle);
+
+		if ($filter_by == 'property') {
+			foreach ($properties as $property_name => $property_value) {
+				$query->propertyCondition($property_name, $property_value);
+			}
+		}
+
+		if ($filter_by == 'fields') {
+			foreach ($fields as $field_name => $field_value) {
+				if ($field_value) {
+					$query->fieldCondition($field_name, 'value', $field_value, '=');
+				}
+			}
+		}
+		$query->addMetaData('account', user_load(1)); // Run the query as user 1.
+		$result = $query->execute();
+		if (isset($result[$entity_type])) {
+			$items_ids = array_keys($result[$entity_type]);
+			$item_id = reset($items_ids);
+
+			try {
+				$wrapped_entity = $item_id ? entity_metadata_wrapper($entity_type, $item_id) : array();
+			}
+			catch (EntityMetadataWrapperException $exc) {
+				watchdog(
+					'c_csvparser',
+					'EntityMetadataWrapper exception in %function() <pre>@trace</pre>',
+					array(
+						'%function' => __FUNCTION__,
+						'@trace' => $exc->getTraceAsString()
+					),
+					WATCHDOG_ERROR
+				);
+			}
+		}
+	}
+
+	// creating
+	if (($op == 'both' || $op == 'create') && !$wrapped_entity && $fields && $entity_type != 'taxonomy_term') {
+		// create the entity
+		foreach ($properties as $property_name => $property_value) {
+			$entity_properties[$property_name] = $property_value;
+		}
+		$entity_properties['type'] = $bundle;
+		$new_entity = entity_create($entity_type, $entity_properties);
+
+		try {
+			$wrapped_entity = entity_metadata_wrapper($entity_type, $new_entity);
+
+			foreach ($fields as $field_name => $field_value) {
+				if ($field_value) {
+					$wrapped_entity->{$field_name}->set($field_value);
+				}
+			}
+			$wrapped_entity->save();
+		}
+		catch (EntityMetadataWrapperException $exc) {
+			watchdog(
+				'c_csvparser',
+				'EntityMetadataWrapper exception in %function() <pre>@trace</pre>',
+				array(
+					'%function' => __FUNCTION__,
+					'@trace' => $exc->getTraceAsString()
+				),
+				WATCHDOG_ERROR
+			);
+		}
+	}
+	return $wrapped_entity;
+}
+
+function  c_csvparser_get_new_username_from_email($email) {
+	// To prepare an e-mail address to be a username, we trim any potential
+	// leading and trailing spaces and replace simple illegal characters with
+	// hyphens.
+	$username = preg_replace('/[^\x{80}-\x{F7} a-z0-9@_.\'-]/i', '-', trim($email));
+
+	// Remove the e-mail host name so usernames are not valid email addresses.
+	$username = preg_replace('/@.*$/', '', $username);
+	$username = substr($username, 0, USERNAME_MAX_LENGTH);
+	return _c_csvparser_unique_username($username);
+}
+
+/**
+ * Takes a base username and returns a unique version of the username.
+ *
+ * @param $base
+ *   The base from which to construct a unique username.
+ *
+ * @return
+ *   A unique version of the username using appended numbers to avoid duplicates
+ *   if the base is already in use.
+ */
+function _c_csvparser_unique_username($base) {
+  $username = $base;
+  $i = 1;
+
+  while (db_query('SELECT 1 FROM {users} WHERE name = :name', array(':name' => $username))->fetchField()) {
+    // Ensure the username does not exceed the maximum character limit.
+    if (strlen($base . $i) > USERNAME_MAX_LENGTH) {
+      $base = substr($base, 0, strlen($base) - strlen($i));
+    }
+
+    $username = $base . $i++;
+  }
+
+  return $username;
 }
