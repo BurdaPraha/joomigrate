@@ -2,18 +2,18 @@
 
 This module should be only used by drupal developer.
 
-### How do I get set up? ###
+### Saving a file images ###
+If files not online you can upload them in directory like e.g.: `sites/all/default/files/tobeuploaded/`  
+OR `/tmp/myimages` then somewhere use  
+```
+$file_data = file_get_contents(\Drupal::root() . "sites/all/default/files/tobeuploaded/{$data['image_url]}");
+$file = file_save_data($file_data, 'public://druplicon.png', FILE_EXISTS_REPLACE);
 
-* Install [**Entity**](https://www.drupal.org/project/entity) module
-* A good undestanding of [**EntityMetadataWrapper**](http://www.mediacurrent.com/blog/entity-metadata-wrapper) will be needed as well
-
-### Who do I talk to? ###
-
-* Drupal developer
-
-### Why not [**feeds**](https://www.drupal.org/project/feeds)? ###
-
-* The support of feed for all entity type still poor (on my point of view)
-* I have more control over my fields
-
-**All contributions are welcome**
+$node = Node::create([
+  'type'        => 'article',
+  'title'       => 'Druplicon test',
+  'field_image' => [
+    'target_id' => $file->id(),
+  ],
+]);
+```
