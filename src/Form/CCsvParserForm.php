@@ -1,20 +1,14 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\c_csvparser\Form\CCsvParserForm.
- */
-
 namespace Drupal\c_csvparser\Form;
 
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
-use Drupal\field\Entity\FieldConfig;
-use geoPHP;
+use Drupal\node\Entity\Node;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -22,6 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @package Drupal\c_csvparser\Form
  */
 class CCsvParserForm extends FormBase {
+
   /**
    * The node storage.
    *
@@ -56,20 +51,17 @@ class CCsvParserForm extends FormBase {
    * @var \Drupal\Core\Datetime\DateFormatter
    */
   protected $dateFormatter;
-
+  
   /**
+   * CCsvParserForm constructor.
+   *
    * @param \Drupal\Core\Entity\EntityStorageInterface $node_storage
-   *   The node storage.
    * @param \Drupal\Core\Entity\EntityStorageInterface $node_type_storage
-   *   The node type storage.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
-   *   The language manager.
    * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
-   *   The url generator service.
-   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
-   *   The date formatter service.
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
    */
-  public function __construct(EntityStorageInterface $node_storage, EntityStorageInterface $node_type_storage, LanguageManagerInterface $language_manager, UrlGeneratorInterface $url_generator, DateFormatter $date_formatter) {
+  public function __construct(EntityStorageInterface $node_storage, EntityStorageInterface $node_type_storage, LanguageManagerInterface $language_manager, UrlGeneratorInterface $url_generator, DateFormatterInterface $date_formatter) {
     $this->nodeStorage = $node_storage;
     $this->nodeTypeStorage = $node_type_storage;
     $this->languageManager = $language_manager;
@@ -78,13 +70,13 @@ class CCsvParserForm extends FormBase {
   }
 
   /**
-   * Instantiate the entityfield query contatiner
+   * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    $entity_manager = $container->get('entity.manager');
+    $entity_type_manager = $container->get('entity_type.manager');
     return new static(
-      $entity_manager->getStorage('node'),
-      $entity_manager->getStorage('node_type'),
+      $entity_type_manager->getStorage('node'),
+      $entity_type_manager->getStorage('node_type'),
       $container->get('language_manager'),
       $container->get('url_generator'),
       $container->get('date.formatter')
@@ -102,30 +94,31 @@ class CCsvParserForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['browser'] = array(
+    $form['browser'] = [
       '#type'        =>'fieldset',
-      '#title'       => t('Browser Upload'),
+      '#title'       => $this->t('Browser Upload'),
       '#collapsible' => TRUE,
-      '#description' => t("Upload a CSV file."),
-    );
+      '#description' => $this->t("Upload a CSV file."),
+    ];
 
-    $file_size = t('Maximum file size: !size MB.', array('!size' => file_upload_max_size()));
-    $form['browser']['file_upload'] = array(
+    $form['browser']['file_upload'] = [
       '#type'        => 'file',
-      '#title'       => t('CSV File'),
+      '#title'       => $this->t('CSV File'),
       '#size'        => 40,
-      '#description' => t('Select the CSV file to be imported. ') . $file_size,
-    );
+      '#description' => $this->t('Select the CSV file to be imported. Maximum file size: !size MB.', [
+        '!size' => file_upload_max_size()
+      ]),
+    ];
 
-    $form['copy'] = array(
+    $form['copy'] = [
       '#type' => 'checkbox',
       '#title' => t('Skip first row'),
-    );
+    ];
 
-    $form['submit'] = array(
+    $form['submit'] = [
       '#type' => 'submit',
       '#value' => t('Save'),
-    );
+    ];
 
     return $form;
   }
@@ -136,16 +129,16 @@ class CCsvParserForm extends FormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
 
     // Adding csv extension to validators - attempt to save the uploaded file
-    $validators = array('file_validate_extensions' => array('csv'));
+    $validators = ['file_validate_extensions' => ['csv']];
     $file = file_save_upload('file_upload', $validators);
     $file = reset($file);
 
     // check if file uploaded OK
     if (!$file) {
-      $form_state->setErrorByName('file_upload', t('A file must be uploaded or selected from FTP updates.'));
+      $form_state->setErrorByName('file_upload', $this->t('A file must be uploaded or selected from FTP updates.'));
     }
     else if($file->getMimeType() != 'text/csv') {
-      $form_state->setErrorByName('file_upload', t('Only CSV file are allowed.'));
+      $form_state->setErrorByName('file_upload', $this->t('Only CSV file are allowed.'));
     }
     else {
       // set files to form_state, to process when form is submitted
@@ -162,81 +155,145 @@ class CCsvParserForm extends FormBase {
 
     $filepath = $form_values['file_upload']->getFileUri();
     $handle = fopen($filepath, "r");
-    $row_result = array();
+  
+    $error_msg = '';
+    
     if ($handle) {
-      // start count of imports for this upload
-      $send_counter = 0;
-
+      // counter to skip line one cause considered as csv header
+      $counter = 0;
+      $batch = [
+        'operations' => [],
+        'finished' => [get_class($this), 'finishBatch'],
+        'title' => $this->t('CSV File upload synchronization'),
+        'init_message' => $this->t('Starting csv file upload synchronization.'),
+        'progress_message' => t('Completed step @current of @total.'),
+        'error_message' => t('CSV file upload synchronization has encountered an error.'),
+        'file' => __DIR__ . '/../../config.admin.inc',
+      ];
+      $valid_csv = FALSE;
+      $headers = $this->getCsvHeaders();
+  
       while ($row = fgetcsv($handle, 1000, ',')) {
-        // $row is an array of elements in each row
-        // Avoiding the first row because it contain the title.
-        if ($send_counter != 0) {
-          //Add your function create here
-          $this->createEntity($row, $send_counter);
+        // checking if column from csv and row match
+        if (count($row) > 0 && (count($headers) == count($row))) {
+          $data = array_combine($headers, $row);
+          // validating if the csv has the exact same headers
+          // @todo maybe move this logic in form validate
+          if ($counter == 0 && !$valid_csv = $this->validCsv($data)) {
+            break;
+          }
+          elseif ($counter > 0) {
+            // add row to be processed during batch run
+            $batch['operations'][] = [[get_class($this), 'processBatch'], [$data]];
+          }
         }
-        $send_counter++;
+        else {
+          $error_msg = $this->t("CSV columns don't match expected headers columns!");
+        }
+    
+        $counter++;
+      }
+  
+      if ($valid_csv) {
+        batch_set($batch);
       }
     }
-//    $tmp = $geoms;
+    else {
+      $error_msg = $this->t('CSV file could not be open!');
+    }
+  
+    if ($error_msg) {
+      drupal_set_message($error_msg, 'error');
+    }
   }
-
+  
   /**
-   * create one entity. Used by both batch and non-batch
-   * @param $values
+   * Processes the article synchronization batch.
+   *
+   * @param array $data
+   *   The data row.
+   * @param array $context
+   *   The batch context.
    */
-  public function createEntity($values, $counter = 0) {
-    $uid = 1;
-    $node_type = 'page';
-    $title = $values[1]; //'random title - '.$counter;
-    $body = array(
-      'value' => '<p>Vivamus suscipit tortor eget felis porttitor volutpat. Donec sollicitudin molestie malesuada.
-Donec rutrum congue leo eget malesuada. Nulla quis lorem ut libero malesuada feugiat. Proin eget tortor risus.</p>',
-      'format' => 'basic_html'
-    );
-
-    $node = $this->nodeStorage->create(array(
-      'nid' => NULL,
-      'type' => $node_type,
-      'title' => $title,
-      'uid' => $uid,
-      'revision' => 0,
-      'status' => TRUE,
-      'promote' => 0,
-      'created' => REQUEST_TIME,
-      'langcode' => 'en'
-    ));
-
-    // Various field type.Life is not popular in upstairs, the next world, or order, but everywhere.
-    $node->body = $body;
-    $geom = array();
-    if (isset($values[3])) {
-      $json_string = (string)$values[3];
-      $json_string = str_replace('=>', ':', $json_string);
-      $is_json = json_decode($json_string);
-      if ($is_json) {
-        \Drupal::service('geophp.geophp');
-        $geom = geoPHP::load($json_string);
-
-        if (!empty($geom)) {
-          $centroid = $geom->getCentroid();
-          $bounding = $geom->getBBox();
-          $node->field_geofield = array(
-            'value' => $geom->out('wkt'),
-            'geo_type' => $geom->geometryType(),
-            'lon' => $centroid->getX(),
-            'lat' => $centroid->getY(),
-            'left' => $bounding['minx'],
-            'top' => $bounding['maxy'],
-            'right' => $bounding['maxx'],
-            'bottom' =>  $bounding['miny'],
-            'geohash' => $geom->out('geohash'),
-          );
-        }
+  public static function processBatch($data, &$context) {
+    $node = Node::load($data['nid']);
+  
+    if ($node) {
+      // update node
+      
+      // save updated node
+      $node->save();
+    }
+    else {
+      // decide to create new node here
+      // $values = [
+      //   'type' => 'article',
+      //   'title' => t('@title', ['@title' => $data['title']]),
+      //   'status' => is_numeric($data['status']) &&  (bool) $data['status'] ? TRUE : FALSE,
+      // ];
+      // $node = Node::create($values);
+      
+      // then update other field below by calling e.g.
+      // $node->field_name->setValue($data['field_name']);
+      
+      // $node->save();
+  
+      if (!isset($context['results']['errors'])) {
+        $context['results']['errors'] = [];
+      }
+      else {
+        // you can decide to create errors here comments codes below
+        $message = t('Data with @title was not synchronized', ['@title' => $data['title']]);
+        $context['results']['errors'][] = $message;
       }
     }
-
-    $node->save();
-
-//    return $geom;
   }
+  
+  /**
+   * Finish batch.
+   *
+   * This function is a static function to avoid serializing the ConfigSync
+   * object unnecessarily.
+   */
+  public static function finishBatch($success, $results, $operations) {
+    if ($success) {
+      if (!empty($results['errors'])) {
+        foreach ($results['errors'] as $error) {
+          drupal_set_message($error, 'error');
+          \Drupal::logger('c_csvparser')->error($error);
+        }
+        drupal_set_message(\Drupal::translation()->translate('The csv data parser was synchronized with errors.'), 'warning');
+      }
+      else {
+        drupal_set_message(\Drupal::translation()->translate('The csv data parser was synchronized successfully.'));
+      }
+    }
+    else {
+      // An error occurred.
+      // $operations contains the operations that remained unprocessed.
+      $error_operation = reset($operations);
+      $message = \Drupal::translation()->translate('An error occurred while processing %error_operation with arguments: @arguments', [
+        '%error_operation' => $error_operation[0],
+        '@arguments' => print_r($error_operation[1], TRUE)
+      ]);
+      drupal_set_message($message, 'error');
+    }
+  }
+
+  public function getCsvHeaders() {
+    return array(
+      'nid', 'title', 'alias', 'entity_ref__paragraphs__text__field_text',
+      'status', 'created', 'changed',
+      'entity_ref__paragraphs__gallery__field_media'
+    );
+  }
+
+  public function validCsv($headers_data) {
+    $is_valid = FALSE;
+    foreach ($headers_data as $key => $header) {
+      $is_valid = $key == $header;
+    }
+    return $is_valid;
+  }
+
 }
