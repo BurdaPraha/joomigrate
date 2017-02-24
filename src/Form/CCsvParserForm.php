@@ -9,6 +9,8 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\node\Entity\Node;
+use Drupal\paragraphs\Entity\Paragraph;
+use Drupal\taxonomy\Entity\Term;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -16,6 +18,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @package Drupal\c_csvparser\Form
  */
 class CCsvParserForm extends FormBase {
+
 
   /**
    * The node storage.
@@ -51,17 +54,20 @@ class CCsvParserForm extends FormBase {
    * @var \Drupal\Core\Datetime\DateFormatter
    */
   protected $dateFormatter;
-  
+
   /**
-   * CCsvParserForm constructor.
-   *
-   * @param \Drupal\Core\Entity\EntityStorageInterface $node_storage
-   * @param \Drupal\Core\Entity\EntityStorageInterface $node_type_storage
-   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
-   * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
-   * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
+   * @param EntityStorageInterface $node_storage
+   * @param EntityStorageInterface $node_type_storage
+   * @param LanguageManagerInterface $language_manager
+   * @param UrlGeneratorInterface $url_generator
+   * @param DateFormatterInterface $date_formatter
    */
-  public function __construct(EntityStorageInterface $node_storage, EntityStorageInterface $node_type_storage, LanguageManagerInterface $language_manager, UrlGeneratorInterface $url_generator, DateFormatterInterface $date_formatter) {
+  public function __construct(EntityStorageInterface $node_storage,
+                              EntityStorageInterface $node_type_storage,
+                              LanguageManagerInterface $language_manager,
+                              UrlGeneratorInterface $url_generator,
+                              DateFormatterInterface $date_formatter)
+  {
     $this->nodeStorage = $node_storage;
     $this->nodeTypeStorage = $node_type_storage;
     $this->languageManager = $language_manager;
@@ -106,7 +112,7 @@ class CCsvParserForm extends FormBase {
       '#title'       => $this->t('CSV File'),
       '#size'        => 40,
       '#description' => $this->t('Select the CSV file to be imported. Maximum file size: !size MB.', [
-        '!size' => file_upload_max_size()
+        '@size' => file_upload_max_size()
       ]),
     ];
 
@@ -162,13 +168,13 @@ class CCsvParserForm extends FormBase {
       // counter to skip line one cause considered as csv header
       $counter = 0;
       $batch = [
-        'operations' => [],
-        'finished' => [get_class($this), 'finishBatch'],
-        'title' => $this->t('CSV File upload synchronization'),
-        'init_message' => $this->t('Starting csv file upload synchronization.'),
-        'progress_message' => t('Completed step @current of @total.'),
-        'error_message' => t('CSV file upload synchronization has encountered an error.'),
-        'file' => __DIR__ . '/../../config.admin.inc',
+        'operations'        => [],
+        'finished'          => [get_class($this), 'finishBatch'],
+        'title'             => $this->t('CSV File upload synchronization'),
+        'init_message'      => $this->t('Starting csv file upload synchronization.'),
+        'progress_message'  => t('Completed step @current of @total.'),
+        'error_message'     => t('CSV file upload synchronization has encountered an error.'),
+        'file'              => __DIR__ . '/../../config.admin.inc',
       ];
       $valid_csv = FALSE;
       $headers = $this->getCsvHeaders();
@@ -216,7 +222,13 @@ class CCsvParserForm extends FormBase {
    *   The batch context.
    */
   public static function processBatch($data, &$context) {
-    $node = Node::load($data['nid']);
+
+    $node = \Drupal::entityTypeManager()
+        ->getStorage('node')
+        ->loadByProperties(['field_joomla_id' => $data['ID']]);
+
+
+    //$node = Node::load($data['ID']);
   
     if ($node) {
       // update node
@@ -225,18 +237,63 @@ class CCsvParserForm extends FormBase {
       $node->save();
     }
     else {
+
+      //$paragraph = Paragraph::create(['type' => 'PARAGRAPH_TYPE']);
+      //$paragraph->set('TEXT_FIELD_NAME', $content);
+      //$paragraph->isNew();
+      //$paragraph->save();
+
+
+      // find channel by name
+
+      $created = new \DateTime($data['Created']);
+      $publishUp = new \DateTime($data['Publish Up']);
+      $publishDown = new \DateTime($data['Publish Down']);
+
       // decide to create new node here
-      // $values = [
-      //   'type' => 'article',
-      //   'title' => t('@title', ['@title' => $data['title']]),
-      //   'status' => is_numeric($data['status']) &&  (bool) $data['status'] ? TRUE : FALSE,
-      // ];
-      // $node = Node::create($values);
+      $values = [
+          'type'          => 'article',
+          'status'        => is_numeric($data['Published']) &&  (bool) $data['Published'] ? TRUE : FALSE,
+          "promote"       => 1,
+          'title'         => t('@title', ['@title' => $data['Title']]),
+          'path'          => $data['Alias'],
+          "created"       => $created->getTimestamp(), // strtotime
+          "publish_on"    => $publishUp->getTimestamp(), // strtotime
+          "unpublish_on"  => $publishDown->getTimestamp(), // strtotime
+          "channel"       => self::channelJob($data['Category Name']),
+          "uid"           => self::userJob($data['User ID']),
+          "description"   => $data['Meta Description']
+
+          /*
+          'field_tags',
+          "entity_ref__paragraphs__image__field_media",
+          "entity_ref__paragraphs__gallery__field_title",
+          "entity_ref__paragraphs__gallery__field_media",
+          "field_meta_tags[0][basic][description]"
+          */
+
+      ];
+
+      $node = Node::create($values);
+      //$node->field_title->setValue($data['Title']);
+      $node->save();
+
+
+      /*
+      $file_data = file_get_contents(\Drupal::root() . "sites/all/default/files/tobeuploaded/{$data['image_url']}");
+      $file = file_save_data($file_data, 'public://druplicon.png', FILE_EXISTS_REPLACE);
+
+      $node = Node::create([
+          'type'        => 'article',
+          'title'       => 'Druplicon test',
+          'field_image' => [
+              'target_id' => $file->id(),
+          ],
+      ]);
+      */
       
       // then update other field below by calling e.g.
-      // $node->field_name->setValue($data['field_name']);
-      
-      // $node->save();
+
   
       if (!isset($context['results']['errors'])) {
         $context['results']['errors'] = [];
@@ -248,7 +305,65 @@ class CCsvParserForm extends FormBase {
       }
     }
   }
-  
+
+
+  public function channelJob($name)
+  {
+    $channelExisting = \Drupal::entityTypeManager()
+        ->getStorage('taxonomy_term')
+        ->loadByProperties(['name' => $name]);
+
+    if($channelExisting)
+    {
+      return end($channelExisting)->id();
+    }
+
+    $term = Term::create(['name' => $name, 'vid' => 'channel'])->save();
+    if($term)
+    {
+      self::channelJob($name);
+    }
+  }
+
+
+  public function userJob($JoomlaUserId)
+  {
+    if(empty($JoomlaUserId) || null == $JoomlaUserId) $JoomlaUserId = 1;
+
+    $findUser = \Drupal::entityTypeManager()
+        ->getStorage('user')
+        ->loadByProperties(['field_joomla_id' => $JoomlaUserId]);
+
+    if($findUser)
+    {
+      return end($findUser)->id();
+    }
+
+    $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+    $user = \Drupal\user\Entity\User::create();
+
+    // Mandatory.
+    $user->setPassword(time());
+    $user->enforceIsNew();
+    $user->setEmail(time() . "@studioart.cz");
+    $user->setUsername($JoomlaUserId);
+
+    // Optional.
+    $user->set('field_joomla_id', $JoomlaUserId);
+    $user->set('init', 'email');
+    $user->set('langcode', $language);
+    $user->set('preferred_langcode', $language);
+    $user->set('preferred_admin_langcode', $language);
+    $user->addRole('editor');
+    $user->activate();
+
+    $result = $user->save();
+    if($result)
+    {
+      self::userJob($JoomlaUserId);
+    }
+  }
+
   /**
    * Finish batch.
    *
@@ -282,9 +397,52 @@ class CCsvParserForm extends FormBase {
 
   public function getCsvHeaders() {
     return array(
-      'nid', 'title', 'alias', 'entity_ref__paragraphs__text__field_text',
-      'status', 'created', 'changed',
-      'entity_ref__paragraphs__gallery__field_media'
+      'ID',
+      'Title',
+      'Alias',
+      'Introtext',
+      'Fulltext',
+      'Tags',
+      'Published',
+      'Publish Up',
+      'Publish Down',
+      'Access',
+      'Trash',
+      'Created',
+      'User ID',
+      'Hits',
+      'Language',
+      'Video',
+      'Ordering',
+      'Featured',
+      'Featured ordering',
+      'Image',
+      'Image caption',
+      'Image credits',
+      'Video caption',
+      'Video credits',
+      'Gallery Name',
+      'Images for the Gallery',
+      'Meta Description',
+      'Meta Data',
+      'Meta Keywords',
+      'Item Plugins',
+      'Item Params',
+      'Category Name',
+      'Category Description',
+      'Category Access',
+      'Category Trash',
+      'Category Plugins',
+      'Category Params',
+      'Category Image',
+      'Category Language',
+      'Comments'
+      //'alias',
+      //'entity_ref__paragraphs__text__field_text',
+      //'status',
+      //'created',
+      //'changed',
+      //'entity_ref__paragraphs__gallery__field_media'
     );
   }
 
