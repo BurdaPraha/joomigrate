@@ -274,7 +274,7 @@ class CCsvParserForm extends FormBase {
 
         // teaser
         'field_teaser_image'  => [
-          'target_id' => self::teaserMediaJob($data['Teaser image'], $data['Title'], $data['User ID']),
+            'target_id' => self::teaserMediaJob($data['Teaser image'], $data['Title'], $data['User ID']),
         ],
     ];
 
@@ -398,16 +398,18 @@ class CCsvParserForm extends FormBase {
     $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . end($image_name), FILE_EXISTS_REPLACE);
 
     $image_media = Media::create([
-        'bundle'  => 'picture',
+        'bundle'  => 'image',
         'uid'     => self::userJob($user),
+        //'langcode' => Language::LANGCODE_DEFAULT,
         'status'  => Media::PUBLISHED,
 
-        'field_teaser_image' => [
+        'field_image' => [
             'target_id' => $file->id(),
             'alt'       => t('@title', ['@title' => $title]),
             'title'     => t('@title', ['@title' => $title]),
         ],
     ]);
+    $image_media->setQueuedThumbnailDownload();
     $image_media->save();
     return $image_media->id();
   }
@@ -543,8 +545,8 @@ class CCsvParserForm extends FormBase {
       // An error occurred.
       // $operations contains the operations that remained unprocessed.
       $error_operation = reset($operations);
-      $message = \Drupal::translation()->translate('An error occurred while processing %error_operation with arguments: @arguments', [
-        '%error_operation' => $error_operation[0],
+      $message = \Drupal::translation()->translate('An error occurred while processing @error_operation with arguments: @arguments', [
+        '@error_operation' => $error_operation[0],
         '@arguments' => print_r($error_operation[1], TRUE)
       ]);
       drupal_set_message($message, 'error');
@@ -586,6 +588,7 @@ class CCsvParserForm extends FormBase {
       'Meta Description',
       'Meta Data',
       'Meta Keywords',
+      'Teaser image',
       'Item Plugins',
       'Item Params',
       'Category Name',
