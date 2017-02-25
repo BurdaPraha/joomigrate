@@ -8,6 +8,8 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
+use Drupal\file\Entity\File;
+use Drupal\media_entity\Entity\Media;
 use Drupal\node\Entity\Node;
 use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\taxonomy\Entity\Term;
@@ -223,60 +225,127 @@ class CCsvParserForm extends FormBase {
    */
   public static function processBatch($data, &$context) {
 
-    $node = \Drupal::entityTypeManager()
+    $nodes = null;
+    $node  = null;
+
+    // load node by joomla id
+    $nodes = \Drupal::entityTypeManager()
         ->getStorage('node')
         ->loadByProperties(['field_joomla_id' => $data['ID']]);
 
+    // get result from array
+    if(count($nodes) > 0)
+    {
+      $node  = end($nodes);
+      //$node = Node::load($nid);
+    }
+
+    // format dates
+    $created      = new \DateTime($data['Created']);
+    $publishUp    = new \DateTime($data['Publish Up']);
+    $publishDown  = new \DateTime($data['Publish Down']);
+
+    $values = [
+        //"publish_on"        => $publishUp->getTimestamp(),
+        //"unpublish_on"      => ["value" => "0000-00-00 00:00:00"],
+
+        'field_joomla_id'   => $data['ID'],
+        'type'              => 'article',
+        'title'             => t('@title', ['@title' => $data['Title']]),
+        'field_seo_title'   => $data['Title'], //t('@title', ['@title' => $data['Title']]),
+        "promote"           => 1,
+        "status"            => 1,
+        'langcode'          => 'cs',
+        "created"           => $created->getTimestamp(),
+        "changed"           => $created->getTimestamp(),
+        'field_channel'     => [
+            'target_id' => self::channelJob($data['Category Name'])
+        ],
+
+        // set as text article
+        'field_article_type'  => [
+            'target_id' => 3
+        ],
+
+        // author
+        "uid"                 => self::userJob($data['User ID']),
+        "description"         => $data['Meta Description'],
+        'field_teaser_text'   => $data['Introtext'],
+
+        // teaser
+        'field_teaser_image'  => [
+          'target_id' => self::teaserMediaJob($data['Teaser image'], $data['Title'], $data['User ID']),
+        ],
+    ];
+
+
+    /*
+    //'alias',
+    //'entity_ref__paragraphs__text__field_text',
+    //'status',
+    //'created',
+    //'changed',
+    //'entity_ref__paragraphs__gallery__field_media'
+    'field_tags',
+    "entity_ref__paragraphs__image__field_media",
+    "entity_ref__paragraphs__gallery__field_title",
+    "entity_ref__paragraphs__gallery__field_media",
+    "field_meta_tags[0][basic][description]"
+    */
+
+
+
+    // gallery paragraph, todo
+    if(!empty($data['Images for the Gallery']))
+    {
+      $gallery = self::galleryJob($data['Gallery Name'], $data['Images for the Gallery']);
+    }
+
+    // video paragraph, todo
+    if(!empty($data['Video']))
+    {
+      $video = self::videoJob($data['Video']);
+    }
+
+
+
+    /*
+    if("0000-00-00 00:00:00" !== $data['Publish Down'])
+    {
+      $values["unpublish_on"] = $publishDown->getTimestamp();
+    }
+    else
+    {
+      $values["unpublish_on"] = null;
+    }
+    */
 
     //$node = Node::load($data['ID']);
-  
-    if ($node) {
-      // update node
-      
+
+    // update node
+    if ($nodes && $node)
+    {
+
+      foreach($values as $key => $value)
+      {
+        $node->set = array($key, $value);
+      }
+
       // save updated node
       $node->save();
+
+      // todo: url for node - update
+
     }
-    else {
+    else
+    {
 
-      //$paragraph = Paragraph::create(['type' => 'PARAGRAPH_TYPE']);
-      //$paragraph->set('TEXT_FIELD_NAME', $content);
-      //$paragraph->isNew();
-      //$paragraph->save();
-
-
-      // find channel by name
-
-      $created = new \DateTime($data['Created']);
-      $publishUp = new \DateTime($data['Publish Up']);
-      $publishDown = new \DateTime($data['Publish Down']);
-
-      // decide to create new node here
-      $values = [
-          'type'          => 'article',
-          'status'        => is_numeric($data['Published']) &&  (bool) $data['Published'] ? TRUE : FALSE,
-          "promote"       => 1,
-          'title'         => t('@title', ['@title' => $data['Title']]),
-          'path'          => $data['Alias'],
-          "created"       => $created->getTimestamp(), // strtotime
-          "publish_on"    => $publishUp->getTimestamp(), // strtotime
-          "unpublish_on"  => $publishDown->getTimestamp(), // strtotime
-          "channel"       => self::channelJob($data['Category Name']),
-          "uid"           => self::userJob($data['User ID']),
-          "description"   => $data['Meta Description']
-
-          /*
-          'field_tags',
-          "entity_ref__paragraphs__image__field_media",
-          "entity_ref__paragraphs__gallery__field_title",
-          "entity_ref__paragraphs__gallery__field_media",
-          "field_meta_tags[0][basic][description]"
-          */
-
-      ];
 
       $node = Node::create($values);
-      //$node->field_title->setValue($data['Title']);
       $node->save();
+
+      // url for node
+      \Drupal::service('path.alias_storage')->save("/node/" . $node->id(), "/" . $data['Alias'], "cs");
 
 
       /*
@@ -295,10 +364,12 @@ class CCsvParserForm extends FormBase {
       // then update other field below by calling e.g.
 
   
-      if (!isset($context['results']['errors'])) {
+      if (!isset($context['results']['errors']))
+      {
         $context['results']['errors'] = [];
       }
-      else {
+      else
+      {
         // you can decide to create errors here comments codes below
         $message = t('Data with @title was not synchronized', ['@title' => $data['title']]);
         $context['results']['errors'][] = $message;
@@ -306,8 +377,82 @@ class CCsvParserForm extends FormBase {
     }
   }
 
+  /**
+   * @param $video string
+   */
+  private function videoJob($video)
+  {
+    // todo - create paragraph with video
+  }
 
-  public function channelJob($name)
+  /**
+   * @param $path
+   * @param string $title
+   * @param $user
+   * @return int|mixed|null|string
+   */
+  private function teaserMediaJob($path, $title = "", $user)
+  {
+    $image_name = explode("/", $path);
+    $file_data  = file_get_contents(\Drupal::root() . "/sites/default/files/joomla/{$path}");
+    $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . end($image_name), FILE_EXISTS_REPLACE);
+
+    $image_media = Media::create([
+        'bundle'  => 'picture',
+        'uid'     => self::userJob($user),
+        'status'  => Media::PUBLISHED,
+
+        'field_teaser_image' => [
+            'target_id' => $file->id(),
+            'alt'       => t('@title', ['@title' => $title]),
+            'title'     => t('@title', ['@title' => $title]),
+        ],
+    ]);
+    $image_media->save();
+    return $image_media->id();
+  }
+
+  /**
+   * Gallery array with objects
+    array(5) {
+      [0]=>
+      object(stdClass)#1420 (6) {
+        ["id"]=>
+        string(3) "328"
+        ["dirId"]=>
+        string(5) "31453"
+        ["filename"]=>
+        string(52) "11_1368708860_Screen shot 2013-05-16 at 14.39.45.png"
+        ["description"]=>
+        string(0) ""
+        ["title"]=>
+        string(0) ""
+        ["ordering"]=>
+        string(1) "1"
+    }
+   *
+   *
+   * @param $pseudoJson string
+   * @return mixed
+   */
+  private function galleryJob($pseudoJson)
+  {
+    // fix json from CSV import
+    $string = str_replace("'", '"', $pseudoJson);
+
+    $arrayOfGalleryObjects = json_decode($string);
+    foreach($arrayOfGalleryObjects as $gallery)
+    {
+      // create new gallery - todo
+
+    }
+  }
+
+  /**
+   * @param $name
+   * @return mixed
+   */
+  private function channelJob($name)
   {
     $channelExisting = \Drupal::entityTypeManager()
         ->getStorage('taxonomy_term')
@@ -318,15 +463,26 @@ class CCsvParserForm extends FormBase {
       return end($channelExisting)->id();
     }
 
-    $term = Term::create(['name' => $name, 'vid' => 'channel'])->save();
+    $term = Term::create([
+        'vid' => 'channel',
+        'name' => $name
+    ]);
+    $term->save();
+
+    // todo:
+    //\Drupal::service('path.alias_storage')->save("/taxonomy/term/" . $term->id(), "/tags/my-tag", "en");
+
     if($term)
     {
       self::channelJob($name);
     }
   }
 
-
-  public function userJob($JoomlaUserId)
+  /**
+   * @param $JoomlaUserId
+   * @return mixed
+   */
+  private function userJob($JoomlaUserId)
   {
     if(empty($JoomlaUserId) || null == $JoomlaUserId) $JoomlaUserId = 1;
 
@@ -395,6 +551,10 @@ class CCsvParserForm extends FormBase {
     }
   }
 
+  /**
+   * Strict header columns
+   * @return array
+   */
   public function getCsvHeaders() {
     return array(
       'ID',
@@ -437,15 +597,13 @@ class CCsvParserForm extends FormBase {
       'Category Image',
       'Category Language',
       'Comments'
-      //'alias',
-      //'entity_ref__paragraphs__text__field_text',
-      //'status',
-      //'created',
-      //'changed',
-      //'entity_ref__paragraphs__gallery__field_media'
     );
   }
 
+  /**
+   * @param $headers_data
+   * @return bool
+   */
   public function validCsv($headers_data) {
     $is_valid = FALSE;
     foreach ($headers_data as $key => $header) {
