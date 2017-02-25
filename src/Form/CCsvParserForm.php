@@ -273,9 +273,11 @@ class CCsvParserForm extends FormBase {
         'field_teaser_text'   => $data['Introtext'],
 
         // teaser
+      /*
         'field_teaser_image'  => [
             'target_id' => self::teaserMediaJob($data['Teaser image'], $data['Title'], $data['User ID']),
         ],
+      */
     ];
 
 
@@ -345,7 +347,7 @@ class CCsvParserForm extends FormBase {
       $node->save();
 
       // url for node
-      \Drupal::service('path.alias_storage')->save("/node/" . $node->id(), "/" . $data['Alias'], "cs");
+      //\Drupal::service('path.alias_storage')->save("/node/" . $node->id(), "/" . $data['Alias'], "cs");
 
 
       /*
@@ -590,13 +592,11 @@ class CCsvParserForm extends FormBase {
       'Meta Keywords',
       'Teaser image',
       'Item Plugins',
-      'Item Params',
       'Category Name',
       'Category Description',
       'Category Access',
       'Category Trash',
       'Category Plugins',
-      'Category Params',
       'Category Image',
       'Category Language',
       'Comments'
