@@ -1,6 +1,8 @@
 {
   "name": "burdapraha/joomigrate",
   "type": "drupal-module",
+  "description": "Experimental migration module for Drupal 8",
+  "minimum-stability": "dev",
   "authors": [
     {
       "name": "Michal Landsman",
@@ -11,6 +13,14 @@
       "email": "nikathone@gmail.com"
     }
   ],
-  "minimum-stability": "dev",
-  "require": {}
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://packages.drupal.org/8"
+    }
+  ],
+  "require": {
+    "drupal/migrate_plus": "^1.0",
+    "drupal/migrate_tools": "^1.0"
+  }
 }
