@@ -21,6 +21,7 @@
   ],
   "require": {
     "drupal/migrate_plus": "dev-3.x",
-    "drupal/migrate_tools": "dev-3.x"
+    "drupal/migrate_tools": "dev-3.x",
+    "drupal/migrate_source_csv": "dev-2.x"
   }
 }
