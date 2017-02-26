@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * @file Contains the code to generate the custom drush commands.
+ */
+/**
+ * Implements hook_drush_command().
+ */
+function c_csvparser_drush_command() {
+    $items = array();
+    $items['delete-articles'] = [
+        'description' => 'It will delete all articles from database',
+        'drupal dependencies' => ['c_csvparser'],
+        'aliases' => ['csvparser:delete-articles'],
+    ];
+    return $items;
+}
+/**
+ * Call back function drush_custom_drush_command_say_hello()
+ * The call back function name in the  following format
+ *   drush_{module_name}_{item_id_for_command}()
+ */
+function drush_c_csvparser_post_delete_articles() {
+
+    $delete = \Drupal::entityQuery('node')
+        ->condition('type', 'article')
+        ->execute();
+
+    entity_delete_multiple('node', $delete);
+    drush_print('All articles was deleted!');
+}

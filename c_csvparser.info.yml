@@ -1,0 +1,6 @@
+name: Custom CSV Parser
+type: module
+description: Parse a csv file and save the data into an entity.
+core: '8.x'
+dependencies:
+  - devel
