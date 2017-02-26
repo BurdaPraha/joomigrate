@@ -1,0 +1,16 @@
+{
+  "name": "burdapraha/joomigrate",
+  "type": "drupal-module",
+  "authors": [
+    {
+      "name": "Michal Landsman",
+      "email": "landsman@studioart.cz"
+    },
+    {
+      "name": "Nia Kathoni",
+      "email": "nikathone@gmail.com"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {}
+}

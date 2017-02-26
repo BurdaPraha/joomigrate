@@ -1,6 +1,0 @@
-csv_parser_form:
-  path: 'c_csvparser'
-  defaults:
-    _form: '\Drupal\c_csvparser\Form\CCsvParserForm'
-  requirements:
-    _permission: 'access c-csv-parser page'

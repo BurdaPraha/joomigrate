@@ -6,11 +6,11 @@
 /**
  * Implements hook_drush_command().
  */
-function c_csvparser_drush_command() {
+function joomigrate_drush_command() {
     $items = array();
     $items['delete-articles'] = [
         'description' => 'It will delete all articles from database',
-        'drupal dependencies' => ['c_csvparser'],
+        'drupal dependencies' => ['joomigrate'],
         'aliases' => ['csvparser:delete-articles'],
     ];
     return $items;
@@ -20,7 +20,7 @@ function c_csvparser_drush_command() {
  * The call back function name in the  following format
  *   drush_{module_name}_{item_id_for_command}()
  */
-function drush_c_csvparser_post_delete_articles() {
+function drush_joomigrate_post_delete_articles() {
 
     $delete = \Drupal::entityQuery('node')
         ->condition('type', 'article')

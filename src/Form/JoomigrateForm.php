@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\c_csvparser\Form;
+namespace Drupal\joomigrate\Form;
 
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -16,10 +16,10 @@ use Drupal\taxonomy\Entity\Term;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Class CCsvParserForm
- * @package Drupal\c_csvparser\Form
+ * Class JoomigrateForm
+ * @package Drupal\joomigrate\Form
  */
-class CCsvParserForm extends FormBase {
+class JoomigrateForm extends FormBase {
 
 
   /**
@@ -95,7 +95,7 @@ class CCsvParserForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'c_csvparser_form';
+    return 'joomigrate_form';
   }
 
   /**
@@ -535,7 +535,7 @@ class CCsvParserForm extends FormBase {
       if (!empty($results['errors'])) {
         foreach ($results['errors'] as $error) {
           drupal_set_message($error, 'error');
-          \Drupal::logger('c_csvparser')->error($error);
+          \Drupal::logger('joomigrate')->error($error);
         }
         drupal_set_message(\Drupal::translation()->translate('The csv data parser was synchronized with errors.'), 'warning');
       }
