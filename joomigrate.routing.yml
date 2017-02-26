@@ -1,6 +1,6 @@
 joomigrate_form:
   path: 'joomigrate'
   defaults:
-    _form: '\Drupal\joomigrate\Form\JoomigrateForm'
+    _form: '\Drupal\joomigrate\Form\Import'
   requirements:
     _permission: 'access joomigrate page'

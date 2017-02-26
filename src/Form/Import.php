@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Class JoomigrateForm
  * @package Drupal\joomigrate\Form
  */
-class JoomigrateForm extends FormBase {
+class Import extends FormBase {
 
 
   /**
