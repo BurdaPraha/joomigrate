@@ -262,14 +262,59 @@ class ImportForm extends FormBase {
             "uid"                 => $user_id,
             "description"         => $data['Meta Description'],
 
-            // teaser
-            'field_teaser_media'  => [
-                'target_id' => self::mediaJob($data['Teaser image'], $data['Image caption'], $data['Image credits'], $data['User ID'], $data['ID']),
-            ],
-
             // perex
             'field_teaser_text'   => $data['Perex'],
         ];
+
+
+        // Teaser media
+        if(!empty($data['Teaser image']) && strlen($data['Teaser image']) > 20)
+        {
+            $values['field_teaser_media'] = [
+                'target_id' => self::mediaJob($data['Teaser image'], $data['Image caption'], $data['Image credits'], $data['User ID'], $data['ID']),
+            ];
+        }
+
+
+        // Promotion
+        // todo: move parameters to form input / database, out of the script
+        $promotion = self::checkPromotionArticle([
+            $data['Title'],
+            $data['Category Name'],
+            $data['Meta Description'],
+            $data['Perex'],
+        ],
+        [
+            'Promotion',
+            'Komerční',
+            'Reklama',
+            'Advertisment'
+        ]);
+
+
+        // Find ugly articles
+        // todo: move parameters to form input / database, out of the script
+        $draft = self::checkDraftArticle([
+            'title'         => $data['Title'],
+            'channel'       => $data['Category Name'],
+            'description'   => $data['Meta Description'],
+            'teaser'        => $data['Perex'],
+        ],
+        [
+            'Test',
+            'empty category',
+            'Testing',
+            'Koncept'
+        ]);
+
+        if(true == $draft)
+        {
+            $variables['status'] = 0;
+            $variables['field_channel'] = [
+                'target_id' => self::channelJob($data['--- Check this! ---'])
+            ];
+        }
+
 
         /**
          **** CREATE NEW ARTICLE ****
@@ -303,9 +348,9 @@ class ImportForm extends FormBase {
             // update article
             $node->save();
 
+
             // todo: create path auto alias
             //\Drupal::service('path.alias_storage')->save("/node/" . $node->id(), "/" . $data['Alias'], "cs");
-
 
         }
         else
@@ -313,7 +358,6 @@ class ImportForm extends FormBase {
             /**
              **** UPDATE NEW ARTICLE ****
              */
-
 
             foreach($values as $key => $value)
             {
@@ -341,6 +385,51 @@ class ImportForm extends FormBase {
         }
     }
 
+    /**
+     * Check if article as promoted or not
+     * @param array $article_data columns which we will check to contain language_keys
+     * @param array $language_keys simple array with have keys as 'Promotion', 'Advertisment' etc
+     * @return bool
+     */
+    private static function checkPromotionArticle(array $article_data, array $language_keys)
+    {
+        $result = false;
+        foreach($article_data as $key => $i)
+        {
+        }
+
+        return $result;
+    }
+
+    /**
+     * Check if article is just concept or testing stuff
+     * @param array $article_data associative array with keys as kind
+     * @param array $language_keys words which says that article is not for public use
+     * @return bool
+     */
+    private static function checkDraftArticle(array $article_data, array $language_keys)
+    {
+        $result = false;
+        foreach($article_data as $key => $i)
+        {
+            if("title" == $key)
+            {
+                // todo: regular exp.
+                $result = false;
+            }
+
+            if("channel" == $key)
+            {
+            }
+
+            if("teaser" == $key)
+            {
+            }
+        }
+
+        return $result;
+    }
+
 
     private static function paragraphJob($data, $user_id = 1)
     {
@@ -361,7 +450,7 @@ class ImportForm extends FormBase {
 
 
     /**
-     * Create youtube embed via paragraphs
+     * Create youtube embed via paragraphs, todo: regx
      * @param $video string
      */
     private static function videoJob($video)
@@ -375,11 +464,11 @@ class ImportForm extends FormBase {
      * @param $path
      * @param string $description
      * @param string $credits
-     * @param $user
-     * @param int $joomla_id
+     * @param $user int
+     * @param int $import_id int
      * @return int|mixed|null|string
      */
-    private static function mediaJob($path, $description = "", $credits = "", $user, $joomla_id = 1)
+    private static function mediaJob($path, $description = "", $credits = "", $user, $import_id = 1)
     {
         $image_name = explode("/", $path);
         $image_name = end($image_name);
@@ -410,7 +499,7 @@ class ImportForm extends FormBase {
             'bundle'  => 'image',
             'uid'     => $user,
             'status'  => Media::PUBLISHED,
-            'field_joomla_id'   => substr($joomla_id, 0, 7),
+            'field_joomla_id'   => substr($import_id, 0, 7),
             'field_description' => $description,
             'field_source'      => $credits,
             'field_image' => [
@@ -521,10 +610,45 @@ class ImportForm extends FormBase {
         ]);
         $term->save();
 
-        // todo: make alias via path auto
-        //\Drupal::service('path.alias_storage')->save("/taxonomy/term/" . $term->id(), "/tags/my-tag", "en");
+        //self::createAlias('taxonomy', $term->id(), $name); // todo!
 
         return $term->id();
+    }
+
+    /**
+     * Path auto - create alias for entity, todo!
+     * @param $entity_name string
+     * @param $id int
+     * @param $alias string
+     */
+    private static function createAlias($entity_name, $id, $alias)
+    {
+        $prefix = '';
+        switch($entity_name)
+        {
+            case 'node':
+                $type = '/node/';
+                break;
+
+            case 'taxonony':
+                $type = '/taxonomy/term/';
+            break;
+
+            case 'media':
+                $type = '/media/';
+                break;
+
+            case 'user':
+                $type = '/user/';
+                break;
+
+            default:
+                $type = '';
+            break;
+        }
+
+        $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+        \Drupal::service('path.alias_storage')->save($type . $id, $prefix . $alias, $language);
     }
 
 
