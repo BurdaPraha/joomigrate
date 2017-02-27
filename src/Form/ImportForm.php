@@ -13,6 +13,7 @@ use Drupal\media_entity\Entity\Media;
 use Drupal\node\Entity\Node;
 use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\taxonomy\Entity\Term;
+use Symfony\Component\Config\Definition\Exception\Exception;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -267,7 +268,7 @@ class ImportForm extends FormBase {
             ],
 
             // perex
-            'field_teaser_text'   => strip_tags($data['Perex'])
+            'field_teaser_text'   => $data['Perex'],
         ];
 
         /**
@@ -279,23 +280,24 @@ class ImportForm extends FormBase {
             $node = Node::create($values);
             $node->save();
 
-
-            // add paragraph
-            $node->field_paragraphs->setValue(self::paragraphContent($node, $data['Introtext']));
-
+            $paragraphs = $node->get('field_paragraphs')->getValue();
+            $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id);
 
             // Gallery, todo!
             if(!empty($data['Images for the Gallery']))
             {
-                //$gallery_media = self::mediaGalleryJob($data['Gallery Name'], $data['Images for the Gallery'], $user_id);
+                $paragraphs[] = self::mediaGalleryJob($data['Gallery Name'], $data['Images for the Gallery'], $user_id);
             }
-
 
             // video paragraph, todo
             if(!empty($data['Video']))
             {
-                //$video = self::videoJob($data['Video']);
+                //$paragraphs[] = self::videoJob($data['Video']);
             }
+
+            // save paragraphs
+            $node->set('field_paragraphs', $paragraphs);
+            //$node->field_paragraphs = $paragraphs;
 
 
             // update article
@@ -340,40 +342,21 @@ class ImportForm extends FormBase {
     }
 
 
-    /**
-     * Create main content of Article as paragraph item
-     * @param $node object
-     * @param $data string
-     * @return array
-     */
-    private function paragraphContent($node, $data)
+    private function paragraphJob($data, $user_id = 1)
     {
-        $field_type_paragraphs = [];
-        if (!empty($node->field_paragraphs)) {
-            $field_type_paragraphs = $node->field_paragraphs->getValue();
-        }
-        // Loop through all the paragraph types associated with the node.
-        foreach ($field_type_paragraphs as $paragraph_source)
-        {
-            $target_id          = $paragraph_source['target_id'];
-            $target_revision_id = $paragraph_source['target_revision_id'];
-            $paragraph_data     = Paragraph::load($target_id);
+        $paragraph = Paragraph::create([
+            'id'          => NULL,
+            'type'        => 'text',
+            'uid'         => $user_id,
+            'field_text'  => [
+                'value'   => $data,
+                'format' => 'full_html',
+            ],
+        ]);
+        $paragraph->isNew();
+        $paragraph->save();
 
-            $paragraph_text = [
-                'value' =>  $data,
-                'format' => 'ckeditor',
-            ];
-
-            $paragraph_data->set('field_text', $paragraph_text);
-            $paragraph_data->save();
-
-
-            // All the existing paragraphs types will be captured.
-            // This is done to avoid removal of existing paragraphs types.
-            $field_type_paragraphs[] = ['target_id' => $target_id, 'target_revision_id' => $target_revision_id];
-        }
-
-        return $field_type_paragraphs;
+        return ['target_id' => $paragraph->id(), 'target_revision_id' => $paragraph->getRevisionId()];
     }
 
 
@@ -447,20 +430,26 @@ class ImportForm extends FormBase {
      */
     private function mediaGalleryJob($name, $pseudoJson, $user_id = 1)
     {
-        $galleryExisting = \Drupal::entityTypeManager()
-            ->getStorage('media')
-            ->loadByProperties([
-                'bundle'  => 'gallery',
-                'uid'     => $user_id,
-                'name'    => $name
-            ]);
+        /*** Check existing gallery ****/
+        $galleryExisting = \Drupal::entityQuery('media')
+            ->condition('bundle', 'gallery')
+            ->condition('uid', $user_id)
+            ->condition('name', $name)
+            ->execute();
 
-        // use existing
-        if($galleryExisting)
+        if(end($galleryExisting))
         {
-            return end($galleryExisting)->id();
+            $gallery_paragraph = \Drupal::entityTypeManager()
+                ->getStorage('paragraph')
+                ->loadByProperties(['field_media.target_id' => end($galleryExisting)]);
+
+            if(end($gallery_paragraph))
+            {
+                return ['target_id' => $gallery_paragraph->id(), 'target_revision_id' => $gallery_paragraph->getRevisionId()];
+            }
         }
 
+        /*** create new gallery ****/
         // fix json from CSV import
         $string   = str_replace("'", '"', $pseudoJson);
         $gallery  = json_decode($string);
@@ -488,10 +477,15 @@ class ImportForm extends FormBase {
         $gallery_paragraph = Paragraph::create([
             'type'        => 'gallery',
             'uid'         => $user_id,
-            'field_media' => $gallery_media->id()
-        ])->save();
+            'field_media' => [
+                'target_id' => $gallery_media->id()
+            ]
+        ]);
+        $gallery_paragraph->isNew();
+        $gallery_paragraph->save();
 
-        return $gallery_paragraph->id();
+
+        return ['target_id' => $gallery_paragraph->id(), 'target_revision_id' => $gallery_paragraph->getRevisionId()];
     }
 
 
@@ -608,8 +602,8 @@ class ImportForm extends FormBase {
             'ID',
             'Title',
             'Alias',
+            'Introtext',
             'Perex',
-            'Fulltext',
             'Tags',
             'Published',
             'Publish Up',
