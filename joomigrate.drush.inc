@@ -45,13 +45,25 @@ function joomigrate_drush_command()
  */
 function drush_joomigrate_post_delete_articles()
 {
-    $ids = \Drupal::entityQuery('node')
+    $siz = \Drupal::entityQuery('node')
         ->condition('type', 'article')
         ->exists('field_joomla_id')
         ->condition('field_joomla_id', 0, '>')
+        ->count()
         ->execute();
 
-    entity_delete_multiple('node', $ids);
+    for($i=0; $i < $siz / 10; $i++)
+    {
+        $ids = \Drupal::entityQuery('node')
+            ->condition('type', 'article')
+            ->exists('field_joomla_id')
+            ->condition('field_joomla_id', 0, '>')
+            ->range(0, 10)
+            ->execute();
+
+        entity_delete_multiple('node', $ids);
+    }
+
     drush_print('All articles with `field_joomla_id` was deleted!');
 }
 
@@ -80,13 +92,25 @@ function drush_joomigrate_post_delete_channels()
  */
 function drush_joomigrate_post_delete_images()
 {
-    $ids = \Drupal::entityQuery('media')
+    $siz = \Drupal::entityQuery('media')
         ->condition('bundle', 'image')
         ->exists('field_joomla_id')
         ->condition('field_joomla_id', 0, '>')
+        ->count()
         ->execute();
 
-    entity_delete_multiple('media', $ids);
+    for($i=0; $i < $siz / 10; $i++)
+    {
+        $ids = \Drupal::entityQuery('media')
+            ->condition('bundle', 'image')
+            ->exists('field_joomla_id')
+            ->condition('field_joomla_id', 0, '>')
+            ->range(0, 10)
+            ->execute();
+
+        entity_delete_multiple('media', $ids);
+    }
+
     drush_print('All pictures with `field_joomla_id` was deleted!');
 }
 
@@ -98,11 +122,24 @@ function drush_joomigrate_post_delete_images()
  */
 function drush_joomigrate_post_delete_galleries()
 {
-    $ids = \Drupal::entityQuery('media')
+    $siz = \Drupal::entityQuery('media')
         ->condition('bundle', 'gallery')
         ->exists('field_gallery_joomla_id')
         ->condition('field_gallery_joomla_id', 0, '>')
+        ->count()
         ->execute();
+
+    for($i=0; $i < $siz / 10; $i++)
+    {
+        $ids = \Drupal::entityQuery('media')
+            ->condition('bundle', 'gallery')
+            ->exists('field_gallery_joomla_id')
+            ->condition('field_gallery_joomla_id', 0, '>')
+            ->range(0, 10)
+            ->execute();
+
+        entity_delete_multiple('media', $ids);
+    }
 
     entity_delete_multiple('media', $ids);
     drush_print('All galleries with `field_joomla_id` was deleted!');
