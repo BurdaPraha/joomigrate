@@ -283,10 +283,10 @@ class ImportForm extends FormBase {
             $paragraphs = $node->get('field_paragraphs')->getValue();
             $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id);
 
-            // Gallery, todo!
-            if(!empty($data['Images for the Gallery']))
+            // Gallery
+            if(!empty($data['Images for the Gallery']) && strlen($data['Images for the Gallery']) > 20)
             {
-                $paragraphs[] = self::mediaGalleryJob((!empty($data['Gallery Name']) ? $data['Gallery Name'] : $data['Title']), $data['Images for the Gallery'], $user_id);
+                $paragraphs[] = self::mediaGalleryJob((!empty($data['Gallery Name']) ? $data['Gallery Name'] : $data['Title']), $data['Images for the Gallery'], $data['ID'], $user_id);
             }
 
             // video paragraph, todo
@@ -426,12 +426,13 @@ class ImportForm extends FormBase {
 
     /**
      * Gallery array with objects
-     * @param $name string
-     * @param $pseudoJson string
-     * @param $user_id int
-     * @return int
+     * @param $name
+     * @param $pseudoJson
+     * @param $article_id
+     * @param int $user_id
+     * @return array
      */
-    private static function mediaGalleryJob($name, $pseudoJson, $user_id = 1)
+    private static function mediaGalleryJob($name, $pseudoJson, $article_id, $user_id = 1)
     {
         /*** Check existing gallery ****/
         $galleryExisting = \Drupal::entityQuery('media')
@@ -452,6 +453,7 @@ class ImportForm extends FormBase {
             }
         }
 
+
         /*** create new gallery ****/
         // fix json from CSV import
         $string   = str_replace("'", '"', $pseudoJson);
@@ -461,20 +463,19 @@ class ImportForm extends FormBase {
 
         foreach($gallery as $key => $image)
         {
-            $gallery_id = $image->dirId;
-            $images[$image->ordering] = ['target_id' => self::mediaJob($image->filename, $image->title, $image->description, $user_id, $image->dirId)];
+            $images[] = [ // $image->ordering
+                'target_id' => self::mediaJob($image->filename, $image->title, $image->description, $user_id, $image->dirId)
+            ];
         }
-
-        //reset($images);
 
         // create gallery
         $gallery_media = Media::create([
             'bundle'              => 'gallery',
             'uid'                 => $user_id,
             'status'              => Media::PUBLISHED,
-            'field_name'          => $name,
-            'field_gallery_joomla_id' => substr($gallery_id, 0, 7),
-            'field_media_images'  => $images
+            'name'                => $name,
+            'field_media_images'  => $images,
+            'field_gallery_joomla_id' => $article_id
         ]);
         $gallery_media->setQueuedThumbnailDownload();
         $gallery_media->save();
