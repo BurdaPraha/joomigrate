@@ -267,7 +267,7 @@ class ImportForm extends FormBase {
             ],
 
             // perex
-            'field_teaser_text'   => $data['Perex']
+            'field_teaser_text'   => strip_tags($data['Perex'])
         ];
 
         /**
