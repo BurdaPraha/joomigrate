@@ -1,4 +1,4 @@
 joomigrate_form:
   title: 'Joomigrate Form'
   description: 'Callback for generating form.'
-  route_name: joomigrate_form
+  route_name: joomigrate

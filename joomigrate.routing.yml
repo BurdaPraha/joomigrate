@@ -1,5 +1,5 @@
-joomigrate_form:
-  path: 'joomigrate_form'
+joomigrate:
+  path: 'joomigrate'
   defaults:
     _form: '\Drupal\joomigrate\Form\ImportForm'
   requirements:
