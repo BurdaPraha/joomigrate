@@ -261,13 +261,13 @@ class ImportForm extends FormBase {
             "uid"                 => $user_id,
             "description"         => $data['Meta Description'],
 
-            // perex
-            'field_teaser_text'   => '', // todo: fill it with something!
-
             // teaser
-            'field_teaser_image'  => [
+            'field_teaser_media'  => [
                 'target_id' => self::mediaJob($data['Teaser image'], $data['Title'], $data['User ID'], $data['ID']),
             ],
+
+            // perex
+            'field_teaser_text'   => $data['Perex']
         ];
 
         /**
@@ -608,7 +608,7 @@ class ImportForm extends FormBase {
             'ID',
             'Title',
             'Alias',
-            'Introtext',
+            'Perex',
             'Fulltext',
             'Tags',
             'Published',
