@@ -373,13 +373,13 @@ class ImportForm extends FormBase {
     /**
      * Create file from existing source and media picture or use existing by name
      * @param $path
-     * @param string $title
+     * @param string $description
      * @param string $credits
      * @param $user
      * @param int $joomla_id
      * @return int|mixed|null|string
      */
-    private static function mediaJob($path, $title = "", $credits = "", $user, $joomla_id = 1)
+    private static function mediaJob($path, $description = "", $credits = "", $user, $joomla_id = 1)
     {
         $image_name = explode("/", $path);
         $image_name = end($image_name);
@@ -411,12 +411,11 @@ class ImportForm extends FormBase {
             'uid'     => $user,
             'status'  => Media::PUBLISHED,
             'field_joomla_id'   => substr($joomla_id, 0, 7),
+            'field_description' => $description,
             'field_source'      => $credits,
-            'field_description' => $title,
             'field_image' => [
                 'target_id' => $file->id(),
-                'alt'       => t('@title', ['@title' => $title]),
-                'title'     => t('@title', ['@title' => $title]),
+                'alt'       => t('@title', ['@title' => $description]),
             ],
         ]);
         $image_media->setQueuedThumbnailDownload();
@@ -464,7 +463,7 @@ class ImportForm extends FormBase {
         foreach($gallery as $key => $image)
         {
             $images[] = [ // $image->ordering
-                'target_id' => self::mediaJob($image->filename, $image->title, $image->description, $user_id, $image->dirId)
+                'target_id' => self::mediaJob($image->filename, (!empty($image->description) ? $image->description : $image->title), '', $user_id, $image->dirId)
             ];
         }
 
@@ -644,7 +643,8 @@ class ImportForm extends FormBase {
             'Category Plugins',
             'Category Image',
             'Category Language',
-            'Comments'
+            'Comments',
+            'Název galerie'
         );
     }
 
