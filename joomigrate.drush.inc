@@ -100,12 +100,29 @@ function drush_joomigrate_post_delete_galleries()
 {
     $ids = \Drupal::entityQuery('media')
         ->condition('bundle', 'gallery')
+        ->exists('field_gallery_joomla_id')
+        ->condition('field_gallery_joomla_id', 0, '>')
+        ->execute();
+
+    entity_delete_multiple('media', $ids);
+    drush_print('All galleries with `field_joomla_id` was deleted!');
+}
+
+
+/**
+ * Call back function drush_custom_drush_command_say_hello()
+ * The call back function name in the  following format
+ *   drush_{module_name}_{item_id_for_command}()
+ */
+function drush_joomigrate_post_delete_users()
+{
+    $ids = \Drupal::entityQuery('user')
         ->exists('field_joomla_id')
         ->condition('field_joomla_id', 0, '>')
         ->execute();
 
     entity_delete_multiple('media', $ids);
-    drush_print('All galleries with `field_joomla_id` was deleted!');
+    drush_print('All users with `field_joomla_id` was deleted!');
 }
 
 
@@ -120,4 +137,5 @@ function drush_joomigrate_post_delete_all()
     drush_joomigrate_post_delete_channels();
     drush_joomigrate_post_delete_images();
     drush_joomigrate_post_delete_galleries();
+    drush_joomigrate_post_delete_users();
 }

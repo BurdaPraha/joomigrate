@@ -264,7 +264,7 @@ class ImportForm extends FormBase {
 
             // teaser
             'field_teaser_media'  => [
-                'target_id' => self::mediaJob($data['Teaser image'], $data['Title'], $data['User ID'], $data['ID']),
+                'target_id' => self::mediaJob($data['Teaser image'], $data['Image caption'], $data['Image credits'], $data['User ID'], $data['ID']),
             ],
 
             // perex
@@ -374,11 +374,12 @@ class ImportForm extends FormBase {
      * Create file from existing source and media picture or use existing by name
      * @param $path
      * @param string $title
-     * @param $user int
+     * @param string $credits
+     * @param $user
      * @param int $joomla_id
      * @return int|mixed|null|string
      */
-    private function mediaJob($path, $title = "", $user, $joomla_id = 1)
+    private function mediaJob($path, $title = "", $credits = "", $user, $joomla_id = 1)
     {
         $image_name = explode("/", $path);
         $image_name = end($image_name);
@@ -409,7 +410,9 @@ class ImportForm extends FormBase {
             'bundle'  => 'image',
             'uid'     => $user,
             'status'  => Media::PUBLISHED,
-            'field_joomla_id' => $joomla_id,
+            'field_joomla_id'   => substr($joomla_id, 0, 7),
+            'field_source'      => $credits,
+            'field_description' => $title,
             'field_image' => [
                 'target_id' => $file->id(),
                 'alt'       => t('@title', ['@title' => $title]),
@@ -459,19 +462,22 @@ class ImportForm extends FormBase {
         foreach($gallery as $key => $image)
         {
             $gallery_id = $image->dirId;
-            $images[$image->ordering] = self::mediaJob($image->filename, $image->title, $user_id, $image->dirId);
+            $images[$image->ordering] = self::mediaJob($image->filename, $image->title, $image->description, $user_id, $image->dirId);
         }
 
         // create gallery
         $gallery_media = Media::create([
             'bundle'              => 'gallery',
             'uid'                 => $user_id,
+            'status'              => Media::PUBLISHED,
             'field_title'         => $name,
-            'field_joomla_id'     => $gallery_id,
+            'field_gallery_joomla_id' => substr($gallery_id, 0, 7),
             'field_media_images'  => [
                 "x-default" => $images
             ],
-        ])->save();
+        ]);
+        $gallery_media->setQueuedThumbnailDownload();
+        $gallery_media->save();
 
         // create gallery paragraph
         $gallery_paragraph = Paragraph::create([
