@@ -286,7 +286,7 @@ class ImportForm extends FormBase {
             // Gallery, todo!
             if(!empty($data['Images for the Gallery']))
             {
-                $paragraphs[] = self::mediaGalleryJob($data['Gallery Name'], $data['Images for the Gallery'], $user_id);
+                $paragraphs[] = self::mediaGalleryJob((!empty($data['Gallery Name']) ? $data['Gallery Name'] : $data['Title']), $data['Images for the Gallery'], $user_id);
             }
 
             // video paragraph, todo
@@ -342,7 +342,7 @@ class ImportForm extends FormBase {
     }
 
 
-    private function paragraphJob($data, $user_id = 1)
+    private static function paragraphJob($data, $user_id = 1)
     {
         $paragraph = Paragraph::create([
             'id'          => NULL,
@@ -364,7 +364,7 @@ class ImportForm extends FormBase {
      * Create youtube embed via paragraphs
      * @param $video string
      */
-    private function videoJob($video)
+    private static function videoJob($video)
     {
         // todo - create paragraph with video
     }
@@ -379,7 +379,7 @@ class ImportForm extends FormBase {
      * @param int $joomla_id
      * @return int|mixed|null|string
      */
-    private function mediaJob($path, $title = "", $credits = "", $user, $joomla_id = 1)
+    private static function mediaJob($path, $title = "", $credits = "", $user, $joomla_id = 1)
     {
         $image_name = explode("/", $path);
         $image_name = end($image_name);
@@ -431,7 +431,7 @@ class ImportForm extends FormBase {
      * @param $user_id int
      * @return int
      */
-    private function mediaGalleryJob($name, $pseudoJson, $user_id = 1)
+    private static function mediaGalleryJob($name, $pseudoJson, $user_id = 1)
     {
         /*** Check existing gallery ****/
         $galleryExisting = \Drupal::entityQuery('media')
@@ -462,19 +462,19 @@ class ImportForm extends FormBase {
         foreach($gallery as $key => $image)
         {
             $gallery_id = $image->dirId;
-            $images[$image->ordering] = self::mediaJob($image->filename, $image->title, $image->description, $user_id, $image->dirId);
+            $images[$image->ordering] = ['target_id' => self::mediaJob($image->filename, $image->title, $image->description, $user_id, $image->dirId)];
         }
+
+        //reset($images);
 
         // create gallery
         $gallery_media = Media::create([
             'bundle'              => 'gallery',
             'uid'                 => $user_id,
             'status'              => Media::PUBLISHED,
-            'field_title'         => $name,
+            'field_name'          => $name,
             'field_gallery_joomla_id' => substr($gallery_id, 0, 7),
-            'field_media_images'  => [
-                "x-default" => $images
-            ],
+            'field_media_images'  => $images
         ]);
         $gallery_media->setQueuedThumbnailDownload();
         $gallery_media->save();
@@ -490,7 +490,7 @@ class ImportForm extends FormBase {
         $gallery_paragraph->isNew();
         $gallery_paragraph->save();
 
-
+        // todo: gallery path auto alias
         return ['target_id' => $gallery_paragraph->id(), 'target_revision_id' => $gallery_paragraph->getRevisionId()];
     }
 
@@ -501,7 +501,7 @@ class ImportForm extends FormBase {
      * @param int $joomla_id
      * @return int
      */
-    private function channelJob($name, $joomla_id = 1)
+    private static function channelJob($name, $joomla_id = 1)
     {
         $channelExisting = \Drupal::entityTypeManager()
             ->getStorage('taxonomy_term')
@@ -533,7 +533,7 @@ class ImportForm extends FormBase {
      * @param $JoomlaUserId
      * @return mixed
      */
-    private function userJob($JoomlaUserId)
+    private static function userJob($JoomlaUserId)
     {
         if(empty($JoomlaUserId) || null == $JoomlaUserId) $JoomlaUserId = 1;
 

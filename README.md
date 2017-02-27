@@ -14,6 +14,7 @@ For develop and testing useful functions which can delete only imported content 
 - `drush delete-channels`
 - `drush delete-images`
 - `drush delete-galleries`
+- `drush delete-users`
 
 ## Our roadmap:
 - [ ] import from Joomla 3.x K2
