@@ -5,10 +5,7 @@ Experimental migration module, using entities, *still in hard development*.
 We are using modified [CSV export](http://www.individual-it.net/en/Instructions-for-K2-Import-Component.html) from Jommla 3.x K2.
 Exported CSV you can upload at `domain.tld/joomigrate` (administrator permission needed)
 
-## Our roadmap:
-- [ ] import from Joomla 3.x K2
-- [ ] import from Drupal 7
-- [ ] import from WordPress
+[Example data from export](https://docs.google.com/spreadsheets/d/1UBDXlM2a7vT4wiriP7zhSmgu_1F8ehrTRjZwVVgwD5Y/edit?usp=sharing)
 
 ## Drush commands
 For develop and testing useful functions which can delete only imported content (you must have field_joomla_id)
@@ -17,3 +14,8 @@ For develop and testing useful functions which can delete only imported content 
 - `drush delete-channels`
 - `drush delete-images`
 - `drush delete-galleries`
+
+## Our roadmap:
+- [ ] import from Joomla 3.x K2
+- [ ] import from Drupal 7
+- [ ] import from WordPress
