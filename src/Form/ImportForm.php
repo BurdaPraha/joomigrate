@@ -83,11 +83,11 @@ class ImportForm extends FormBase {
   public static function create(ContainerInterface $container) {
     $entity_type_manager = $container->get('entity_type.manager');
     return new static(
-      $entity_type_manager->getStorage('node'),
-      $entity_type_manager->getStorage('node_type'),
-      $container->get('language_manager'),
-      $container->get('url_generator'),
-      $container->get('date.formatter')
+        $entity_type_manager->getStorage('node'),
+        $entity_type_manager->getStorage('node_type'),
+        $container->get('language_manager'),
+        $container->get('url_generator'),
+        $container->get('date.formatter')
     );
   }
 
@@ -103,29 +103,29 @@ class ImportForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['browser'] = [
-      '#type'        =>'fieldset',
-      '#title'       => $this->t('Browser Upload'),
-      '#collapsible' => TRUE,
-      '#description' => $this->t("Upload a CSV file."),
+        '#type'        =>'fieldset',
+        '#title'       => $this->t('Browser Upload'),
+        '#collapsible' => TRUE,
+        '#description' => $this->t("Upload a CSV file."),
     ];
 
     $form['browser']['file_upload'] = [
-      '#type'        => 'file',
-      '#title'       => $this->t('CSV File'),
-      '#size'        => 40,
-      '#description' => $this->t('Select the CSV file to be imported. Maximum file size: !size MB.', [
-        '@size' => file_upload_max_size()
-      ]),
+        '#type'        => 'file',
+        '#title'       => $this->t('CSV File'),
+        '#size'        => 40,
+        '#description' => $this->t('Select the CSV file to be imported. Maximum file size: !size MB.', [
+            '@size' => file_upload_max_size()
+        ]),
     ];
 
     $form['copy'] = [
-      '#type' => 'checkbox',
-      '#title' => t('Skip first row'),
+        '#type' => 'checkbox',
+        '#title' => t('Skip first row'),
     ];
 
     $form['submit'] = [
-      '#type' => 'submit',
-      '#value' => t('Save'),
+        '#type' => 'submit',
+        '#value' => t('Save'),
     ];
 
     return $form;
@@ -163,24 +163,24 @@ class ImportForm extends FormBase {
 
     $filepath = $form_values['file_upload']->getFileUri();
     $handle = fopen($filepath, "r");
-  
+
     $error_msg = '';
-    
+
     if ($handle) {
       // counter to skip line one cause considered as csv header
       $counter = 0;
       $batch = [
-        'operations'        => [],
-        'finished'          => [get_class($this), 'finishBatch'],
-        'title'             => $this->t('CSV File upload synchronization'),
-        'init_message'      => $this->t('Starting csv file upload synchronization.'),
-        'progress_message'  => t('Completed step @current of @total.'),
-        'error_message'     => t('CSV file upload synchronization has encountered an error.'),
-        'file'              => __DIR__ . '/../../config.admin.inc',
+          'operations'        => [],
+          'finished'          => [get_class($this), 'finishBatch'],
+          'title'             => $this->t('CSV File upload synchronization'),
+          'init_message'      => $this->t('Starting csv file upload synchronization.'),
+          'progress_message'  => t('Completed step @current of @total.'),
+          'error_message'     => t('CSV file upload synchronization has encountered an error.'),
+          'file'              => __DIR__ . '/../../config.admin.inc',
       ];
       $valid_csv = FALSE;
       $headers = $this->getCsvHeaders();
-  
+
       while ($row = fgetcsv($handle, 1000, ',')) {
         // checking if column from csv and row match
         if (count($row) > 0 && (count($headers) == count($row))) {
@@ -198,10 +198,10 @@ class ImportForm extends FormBase {
         else {
           $error_msg = $this->t("CSV columns don't match expected headers columns!");
         }
-    
+
         $counter++;
       }
-  
+
       if ($valid_csv) {
         batch_set($batch);
       }
@@ -209,12 +209,12 @@ class ImportForm extends FormBase {
     else {
       $error_msg = $this->t('CSV file could not be open!');
     }
-  
+
     if ($error_msg) {
       drupal_set_message($error_msg, 'error');
     }
   }
-  
+
   /**
    * Processes the article synchronization batch.
    *
@@ -240,14 +240,23 @@ class ImportForm extends FormBase {
       //$node = Node::load($nid);
     }
 
+    $paragraph_content = Paragraph::create([
+        'type' => 'text',
+        'field_text' => [
+            "format" => 'full_html',
+            "value"  =>  $data['Introtext']
+        ]
+    ]);
+    $paragraph_content->save();
+
     // format dates
     $created      = new \DateTime($data['Created']);
     $publishUp    = new \DateTime($data['Publish Up']);
     $publishDown  = new \DateTime($data['Publish Down']);
 
     $values = [
-        //"publish_on"        => $publishUp->getTimestamp(),
-        //"unpublish_on"      => ["value" => "0000-00-00 00:00:00"],
+      //"publish_on"        => $publishUp->getTimestamp(),
+      //"unpublish_on"      => ["value" => "0000-00-00 00:00:00"],
 
         'field_joomla_id'   => $data['ID'],
         'type'              => 'article',
@@ -262,46 +271,53 @@ class ImportForm extends FormBase {
             'target_id' => self::channelJob($data['Category Name'])
         ],
 
-        // set as text article
+      // set as text article
         'field_article_type'  => [
             'target_id' => 3
         ],
 
-        // author
+      // author
         "uid"                 => self::userJob($data['User ID']),
         "description"         => $data['Meta Description'],
-        'field_teaser_text'   => $data['Introtext'],
 
-        // teaser
-      /*
+      //'field_teaser_text'   => $data['Introtext'], todo!
+
+      // teaser
         'field_teaser_image'  => [
-            'target_id' => self::teaserMediaJob($data['Teaser image'], $data['Title'], $data['User ID']),
+            'target_id' => self::mediaTeaserJob($data['Teaser image'], $data['Title'], $data['User ID']),
         ],
-      */
     ];
 
 
     /*
-    //'alias',
     //'entity_ref__paragraphs__text__field_text',
-    //'status',
-    //'created',
-    //'changed',
-    //'entity_ref__paragraphs__gallery__field_media'
     'field_tags',
     "entity_ref__paragraphs__image__field_media",
-    "entity_ref__paragraphs__gallery__field_title",
-    "entity_ref__paragraphs__gallery__field_media",
-    "field_meta_tags[0][basic][description]"
     */
 
 
-
     // gallery paragraph, todo
+    /*
     if(!empty($data['Images for the Gallery']))
     {
-      $gallery = self::galleryJob($data['Gallery Name'], $data['Images for the Gallery']);
+      $gallery_media = self::mediaGalleryJob($data['Gallery Name'], $data['Images for the Gallery']);
+
+      // create gallery paragraph
+      $gallery_paragraph = Paragraph::create([
+          'type' => 'gallery',
+          'field_title' => $data['Title'],
+          'field_media' => [
+              "target_id" => $gallery_media
+          ]
+      ]);
+
+      $gallery_paragraph->save();
+      //$gallery_paragraph->id();
+
+      //$values
+
     }
+    */
 
     // video paragraph, todo
     if(!empty($data['Video']))
@@ -322,8 +338,6 @@ class ImportForm extends FormBase {
     }
     */
 
-    //$node = Node::load($data['ID']);
-
     // update node
     if ($nodes && $node)
     {
@@ -341,31 +355,47 @@ class ImportForm extends FormBase {
     }
     else
     {
-
-
       $node = Node::create($values);
       $node->save();
+
+
+      $field_type_paragraphs = [];
+      if (!empty($node->field_paragraphs)) {
+        $field_type_paragraphs = $node->field_paragraphs->getValue();
+      }
+      // Loop through all the paragraph types associated with the node.
+      foreach ($field_type_paragraphs as $paragraph_source)
+      {
+        $target_id          = $paragraph_source['target_id'];
+        $target_revision_id = $paragraph_source['target_revision_id'];
+        $paragraph_data     = Paragraph::load($target_id);
+
+        $paragraph_text = [
+            'value' =>  $data['Introtext'],
+            'format' => 'ckeditor',
+        ];
+
+        $paragraph_data->set('field_text', $paragraph_text);
+        $paragraph_data->save();
+
+
+        // All the existing paragraphs types will be captured.
+        // This is done to avoid removal of existing paragraphs types.
+        $paragraphs[] = ['target_id' => $target_id, 'target_revision_id' => $target_revision_id];
+      }
+
+
+      $node->save();
+
 
       // url for node
       //\Drupal::service('path.alias_storage')->save("/node/" . $node->id(), "/" . $data['Alias'], "cs");
 
 
-      /*
-      $file_data = file_get_contents(\Drupal::root() . "sites/all/default/files/tobeuploaded/{$data['image_url']}");
-      $file = file_save_data($file_data, 'public://druplicon.png', FILE_EXISTS_REPLACE);
 
-      $node = Node::create([
-          'type'        => 'article',
-          'title'       => 'Druplicon test',
-          'field_image' => [
-              'target_id' => $file->id(),
-          ],
-      ]);
-      */
-      
-      // then update other field below by calling e.g.
 
-  
+
+
       if (!isset($context['results']['errors']))
       {
         $context['results']['errors'] = [];
@@ -393,16 +423,37 @@ class ImportForm extends FormBase {
    * @param $user
    * @return int|mixed|null|string
    */
-  private function teaserMediaJob($path, $title = "", $user)
+  private function mediaTeaserJob($path, $title = "", $user)
   {
     $image_name = explode("/", $path);
+    $image_name = end($image_name);
+
+
+    // check if not already exist
+    $file_exist = \Drupal::entityQuery('file')
+        ->condition('filename', $image_name, 'LIKE')
+        ->execute();
+
+    if(end($file_exist))
+    {
+      $media_exist = \Drupal::entityQuery('media')
+          ->condition('field_image.target_id', end($file_exist))
+          ->execute();
+
+      if(end($media_exist))
+      {
+        return end($media_exist);
+      }
+    }
+
+    // create new
     $file_data  = file_get_contents(\Drupal::root() . "/sites/default/files/joomla/{$path}");
-    $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . end($image_name), FILE_EXISTS_REPLACE);
+    $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . $image_name, FILE_EXISTS_REPLACE);
 
     $image_media = Media::create([
         'bundle'  => 'image',
         'uid'     => self::userJob($user),
-        //'langcode' => Language::LANGCODE_DEFAULT,
+      //'langcode' => Language::LANGCODE_DEFAULT,
         'status'  => Media::PUBLISHED,
 
         'field_image' => [
@@ -418,28 +469,28 @@ class ImportForm extends FormBase {
 
   /**
    * Gallery array with objects
-    array(5) {
-      [0]=>
-      object(stdClass)#1420 (6) {
-        ["id"]=>
-        string(3) "328"
-        ["dirId"]=>
-        string(5) "31453"
-        ["filename"]=>
-        string(52) "11_1368708860_Screen shot 2013-05-16 at 14.39.45.png"
-        ["description"]=>
-        string(0) ""
-        ["title"]=>
-        string(0) ""
-        ["ordering"]=>
-        string(1) "1"
-    }
+  array(5) {
+  [0]=>
+  object(stdClass)#1420 (6) {
+  ["id"]=>
+  string(3) "328"
+  ["dirId"]=>
+  string(5) "31453"
+  ["filename"]=>
+  string(52) "11_1368708860_Screen shot 2013-05-16 at 14.39.45.png"
+  ["description"]=>
+  string(0) ""
+  ["title"]=>
+  string(0) ""
+  ["ordering"]=>
+  string(1) "1"
+  }
    *
-   *
+   * @param $name string
    * @param $pseudoJson string
    * @return mixed
    */
-  private function galleryJob($pseudoJson)
+  private function mediaGalleryJob($name, $pseudoJson)
   {
     // fix json from CSV import
     $string = str_replace("'", '"', $pseudoJson);
@@ -548,8 +599,8 @@ class ImportForm extends FormBase {
       // $operations contains the operations that remained unprocessed.
       $error_operation = reset($operations);
       $message = \Drupal::translation()->translate('An error occurred while processing @error_operation with arguments: @arguments', [
-        '@error_operation' => $error_operation[0],
-        '@arguments' => print_r($error_operation[1], TRUE)
+          '@error_operation' => $error_operation[0],
+          '@arguments' => print_r($error_operation[1], TRUE)
       ]);
       drupal_set_message($message, 'error');
     }
@@ -561,45 +612,45 @@ class ImportForm extends FormBase {
    */
   public function getCsvHeaders() {
     return array(
-      'ID',
-      'Title',
-      'Alias',
-      'Introtext',
-      'Fulltext',
-      'Tags',
-      'Published',
-      'Publish Up',
-      'Publish Down',
-      'Access',
-      'Trash',
-      'Created',
-      'User ID',
-      'Hits',
-      'Language',
-      'Video',
-      'Ordering',
-      'Featured',
-      'Featured ordering',
-      'Image',
-      'Image caption',
-      'Image credits',
-      'Video caption',
-      'Video credits',
-      'Gallery Name',
-      'Images for the Gallery',
-      'Meta Description',
-      'Meta Data',
-      'Meta Keywords',
-      'Teaser image',
-      'Item Plugins',
-      'Category Name',
-      'Category Description',
-      'Category Access',
-      'Category Trash',
-      'Category Plugins',
-      'Category Image',
-      'Category Language',
-      'Comments'
+        'ID',
+        'Title',
+        'Alias',
+        'Introtext',
+        'Fulltext',
+        'Tags',
+        'Published',
+        'Publish Up',
+        'Publish Down',
+        'Access',
+        'Trash',
+        'Created',
+        'User ID',
+        'Hits',
+        'Language',
+        'Video',
+        'Ordering',
+        'Featured',
+        'Featured ordering',
+        'Image',
+        'Image caption',
+        'Image credits',
+        'Video caption',
+        'Video credits',
+        'Gallery Name',
+        'Images for the Gallery',
+        'Meta Description',
+        'Meta Data',
+        'Meta Keywords',
+        'Teaser image',
+        'Item Plugins',
+        'Category Name',
+        'Category Description',
+        'Category Access',
+        'Category Trash',
+        'Category Plugins',
+        'Category Image',
+        'Category Language',
+        'Comments'
     );
   }
 
