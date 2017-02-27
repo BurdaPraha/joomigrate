@@ -16,7 +16,7 @@ use Drupal\taxonomy\Entity\Term;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Class JoomigrateForm
+ * Class ImportForm
  * @package Drupal\joomigrate\Form
  */
 class ImportForm extends FormBase {
