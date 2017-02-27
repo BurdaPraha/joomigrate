@@ -464,7 +464,7 @@ class ImportForm extends FormBase {
 
         // create gallery
         $gallery_media = Media::create([
-            'type'                => 'gallery',
+            'bundle'              => 'gallery',
             'uid'                 => $user_id,
             'field_title'         => $name,
             'field_joomla_id'     => $gallery_id,
