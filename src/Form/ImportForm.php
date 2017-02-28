@@ -649,6 +649,7 @@ class ImportForm extends FormBase {
 
         $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
         \Drupal::service('path.alias_storage')->save($type . $id, $prefix . $alias, $language);
+        // see: http://drupal.stackexchange.com/questions/146286/is-it-possible-to-programmatically-add-a-path-alias-to-a-programmatically-create/225922#225922
     }
 
 
