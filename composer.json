@@ -13,12 +13,6 @@
       "email": "nikathone@gmail.com"
     }
   ],
-  "repositories": [
-    {
-      "type": "composer",
-      "url": "https://packages.drupal.org/8"
-    }
-  ],
   "require": {
     "drupal/migrate_plus": "dev-3.x",
     "drupal/migrate_tools": "dev-3.x",
