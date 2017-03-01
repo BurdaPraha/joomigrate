@@ -92,12 +92,14 @@ class ImportForm extends FormBase {
         );
     }
 
+
     /**
      * {@inheritdoc}
      */
     public function getFormId() {
         return 'joomigrate_form';
     }
+
 
     /**
      * {@inheritdoc}
@@ -132,6 +134,7 @@ class ImportForm extends FormBase {
         return $form;
     }
 
+
     /**
      * {@inheritdoc}
      */
@@ -154,6 +157,7 @@ class ImportForm extends FormBase {
             $form_state->setValue('file_upload', $file);
         }
     }
+
 
     /**
      * {@inheritdoc}
@@ -215,6 +219,7 @@ class ImportForm extends FormBase {
             drupal_set_message($error_msg, 'error');
         }
     }
+
 
     /**
      * Processes the article synchronization batch.
@@ -385,6 +390,7 @@ class ImportForm extends FormBase {
         }
     }
 
+
     /**
      * Check if article as promoted or not
      * @param array $article_data columns which we will check to contain language_keys
@@ -400,6 +406,7 @@ class ImportForm extends FormBase {
 
         return $result;
     }
+
 
     /**
      * Check if article is just concept or testing stuff
@@ -431,14 +438,21 @@ class ImportForm extends FormBase {
     }
 
 
+    /**
+     * @param $data
+     * @param int $user_id
+     * @return array
+     */
     private static function paragraphJob($data, $user_id = 1)
     {
+        $value = str_replace("{{gallery}}", "", $data);
+
         $paragraph = Paragraph::create([
             'id'          => NULL,
             'type'        => 'text',
             'uid'         => $user_id,
             'field_text'  => [
-                'value'   => $data,
+                'value'   => $value,
                 'format' => 'full_html',
             ],
         ]);
@@ -511,6 +525,7 @@ class ImportForm extends FormBase {
         $image_media->save();
         return $image_media->id();
     }
+
 
     /**
      * Gallery array with objects
@@ -615,6 +630,7 @@ class ImportForm extends FormBase {
         return $term->id();
     }
 
+
     /**
      * Path auto - create alias for entity, todo!
      * @param $entity_name string
@@ -693,6 +709,7 @@ class ImportForm extends FormBase {
         return $user->id();
     }
 
+
     /**
      * Finish batch.
      *
@@ -723,6 +740,7 @@ class ImportForm extends FormBase {
             drupal_set_message($message, 'error');
         }
     }
+
 
     /**
      * Strict header columns
@@ -772,6 +790,7 @@ class ImportForm extends FormBase {
             'Název galerie'
         );
     }
+
 
     /**
      * @param $headers_data
