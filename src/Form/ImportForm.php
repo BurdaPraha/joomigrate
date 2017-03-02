@@ -535,7 +535,7 @@ class ImportForm extends FormBase {
                 'field_source'      => $credits,
                 'field_image' => [
                     'target_id' => $file->id(),
-                    'alt'       => t('@title', ['@title' => $description]),
+                    'alt'       => t('@alt', ['@alt' => substr($description, 0, 155)]),
                 ],
             ]);
             $image_media->setQueuedThumbnailDownload();
