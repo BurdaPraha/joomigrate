@@ -221,6 +221,7 @@ class ImportForm extends FormBase {
     }
 
 
+
     /**
      * Processes the article synchronization batch.
      *
@@ -231,6 +232,10 @@ class ImportForm extends FormBase {
      */
     public static function processBatch($data, &$context)
     {
+        // fix entities
+        foreach($data as $k => $v) {
+            $data[$k] = is_string($v) ? html_entity_decode($v) : $v;
+        }
 
         // load node by joomla id
         $nodes = \Drupal::entityTypeManager()
@@ -289,12 +294,12 @@ class ImportForm extends FormBase {
             $data['Meta Description'],
             $data['Perex'],
         ],
-        [
-            'Promotion',
-            'Komerční',
-            'Reklama',
-            'Advertisment'
-        ]);
+            [
+                'Promotion',
+                'Komerční',
+                'Reklama',
+                'Advertisment'
+            ]);
 
 
         // Find ugly articles
@@ -305,12 +310,12 @@ class ImportForm extends FormBase {
             'description'   => $data['Meta Description'],
             'teaser'        => $data['Perex'],
         ],
-        [
-            'Test',
-            'empty category',
-            'Testing',
-            'Koncept'
-        ]);
+            [
+                'Test',
+                'empty category',
+                'Testing',
+                'Koncept'
+            ]);
 
         if(true == $draft)
         {
@@ -648,7 +653,7 @@ class ImportForm extends FormBase {
 
             case 'taxonony':
                 $type = '/taxonomy/term/';
-            break;
+                break;
 
             case 'media':
                 $type = '/media/';
@@ -660,7 +665,7 @@ class ImportForm extends FormBase {
 
             default:
                 $type = '';
-            break;
+                break;
         }
 
         $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
@@ -786,8 +791,7 @@ class ImportForm extends FormBase {
             'Category Plugins',
             'Category Image',
             'Category Language',
-            'Comments',
-            'Název galerie'
+            'Comments'
         );
     }
 
