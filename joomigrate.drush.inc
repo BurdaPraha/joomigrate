@@ -61,7 +61,9 @@ function drush_joomigrate_post_delete_articles()
             ->range(0, 10)
             ->execute();
 
-        entity_delete_multiple('node', $ids);
+        if(count($ids) > 0){
+            entity_delete_multiple('node', $ids);
+        }
     }
 
     drush_print('All articles with `field_joomla_id` was deleted!');
@@ -80,7 +82,9 @@ function drush_joomigrate_post_delete_channels()
         ->condition('field_joomla_id', 0, '>')
         ->execute();
 
-    entity_delete_multiple('taxonomy_term', $ids);
+    if(count($ids) > 0){
+        entity_delete_multiple('taxonomy_term', $ids);
+    }
     drush_print('All channels with `field_joomla_id` was deleted!');
 }
 
@@ -108,10 +112,12 @@ function drush_joomigrate_post_delete_images()
             ->range(0, 10)
             ->execute();
 
-        entity_delete_multiple('media', $ids);
+        if(count($ids) > 0){
+            entity_delete_multiple('media', $ids);
+        }
     }
 
-    drush_print('All pictures with `field_joomla_id` was deleted!');
+    drush_print('All images with `field_joomla_id` was deleted!');
 }
 
 
@@ -138,10 +144,11 @@ function drush_joomigrate_post_delete_galleries()
             ->range(0, 10)
             ->execute();
 
-        entity_delete_multiple('media', $ids);
+        if(count($ids) > 0){
+            entity_delete_multiple('media', $ids);
+        }
     }
 
-    entity_delete_multiple('media', $ids);
     drush_print('All galleries with `field_joomla_id` was deleted!');
 }
 
@@ -158,7 +165,9 @@ function drush_joomigrate_post_delete_users()
         ->condition('field_joomla_id', 0, '>')
         ->execute();
 
-    entity_delete_multiple('media', $ids);
+    if(count($ids) > 0){
+        entity_delete_multiple('media', $ids);
+    }
     drush_print('All users with `field_joomla_id` was deleted!');
 }
 
