@@ -286,42 +286,47 @@ class ImportForm extends FormBase {
         }
 
 
-        // Promotion
-        // todo: move parameters to form input / database, out of the script
+        // Promotion - todo: move parameters to form input / database, out of the script
         $promotion = self::checkPromotionArticle([
             $data['Title'],
             $data['Category Name'],
             $data['Meta Description'],
             $data['Perex'],
-        ],
+            ],
             [
                 'Promotion',
                 'Komerční',
                 'Reklama',
                 'Advertisment'
-            ]);
+        ]);
+
+        if(true == $promotion)
+        {
+            $variables['field_channel'] = [
+                'target_id' => self::channelJob('--- Check this! ---')
+            ];
+        }
 
 
-        // Find ugly articles
-        // todo: move parameters to form input / database, out of the script
+        // Find ugly articles - todo: move parameters to form input / database, out of the script
         $draft = self::checkDraftArticle([
-            'title'         => $data['Title'],
-            'channel'       => $data['Category Name'],
-            'description'   => $data['Meta Description'],
-            'teaser'        => $data['Perex'],
+            $data['Title'],
+            $data['Category Name'],
+            $data['Meta Description'],
+            $data['Perex'],
         ],
-            [
-                'Test',
-                'empty category',
-                'Testing',
-                'Koncept'
-            ]);
+        [
+            'Test',
+            'empty category',
+            'Testing',
+            'Koncept'
+        ]);
 
         if(true == $draft)
         {
             $variables['status'] = 0;
             $variables['field_channel'] = [
-                'target_id' => self::channelJob($data['--- Check this! ---'])
+                'target_id' => self::channelJob('PR článek')
             ];
         }
 
@@ -404,12 +409,7 @@ class ImportForm extends FormBase {
      */
     private static function checkPromotionArticle(array $article_data, array $language_keys)
     {
-        $result = false;
-        foreach($article_data as $key => $i)
-        {
-        }
-
-        return $result;
+        return self::checkEasyMatch($article_data, $language_keys);
     }
 
 
@@ -421,25 +421,31 @@ class ImportForm extends FormBase {
      */
     private static function checkDraftArticle(array $article_data, array $language_keys)
     {
-        $result = false;
-        foreach($article_data as $key => $i)
+        return self::checkEasyMatch($article_data, $language_keys);
+    }
+
+
+    /**
+     * @param array $article_data
+     * @param array $language_keys
+     * @return bool
+     */
+    private static function checkEasyMatch(array $article_data, array $language_keys)
+    {
+        // data columns
+        foreach($article_data as $i)
         {
-            if("title" == $key)
+            // find match in language keywords
+            foreach($language_keys as $k)
             {
-                // todo: regular exp.
-                $result = false;
-            }
-
-            if("channel" == $key)
-            {
-            }
-
-            if("teaser" == $key)
-            {
+                if (preg_match("/{$k}/i", $i))
+                {
+                    return true;
+                }
             }
         }
 
-        return $result;
+        return false;
     }
 
 
@@ -514,21 +520,26 @@ class ImportForm extends FormBase {
         $file_data  = file_get_contents(\Drupal::root() . "/sites/default/files/joomla/{$path}");
         $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . $image_name, FILE_EXISTS_REPLACE);
 
-        $image_media = Media::create([
-            'bundle'  => 'image',
-            'uid'     => $user,
-            'status'  => Media::PUBLISHED,
-            'field_joomla_id'   => substr($import_id, 0, 7),
-            'field_description' => $description,
-            'field_source'      => $credits,
-            'field_image' => [
-                'target_id' => $file->id(),
-                'alt'       => t('@title', ['@title' => $description]),
-            ],
-        ]);
-        $image_media->setQueuedThumbnailDownload();
-        $image_media->save();
-        return $image_media->id();
+        if($file)
+        {
+            $image_media = Media::create([
+                'bundle'  => 'image',
+                'uid'     => $user,
+                'status'  => Media::PUBLISHED,
+                'field_joomla_id'   => substr($import_id, 0, 7),
+                'field_description' => $description,
+                'field_source'      => $credits,
+                'field_image' => [
+                    'target_id' => $file->id(),
+                    'alt'       => t('@title', ['@title' => $description]),
+                ],
+            ]);
+            $image_media->setQueuedThumbnailDownload();
+            $image_media->save();
+            return $image_media->id();
+        }
+
+        return null;
     }
 
 
