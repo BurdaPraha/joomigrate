@@ -280,9 +280,13 @@ class ImportForm extends FormBase {
         // Teaser media
         if(!empty($data['Teaser image']) && strlen($data['Teaser image']) > 20)
         {
-            $values['field_teaser_media'] = [
-                'target_id' => self::mediaJob($data['Teaser image'], $data['Image caption'], $data['Image credits'], $data['User ID'], $data['ID']),
-            ];
+            $media = self::mediaJob($data['Teaser image'], $data['Image caption'], $data['Image credits'], $data['User ID'], $data['ID']);
+            if($media)
+            {
+                $values['field_teaser_media'] = [
+                    'target_id' => $media,
+                ];
+            }
         }
 
 
@@ -578,13 +582,17 @@ class ImportForm extends FormBase {
         $string   = str_replace("'", '"', $pseudoJson);
         $gallery  = json_decode($string);
         $images   = [];
-        $gallery_id = 0;
 
         foreach($gallery as $key => $image)
         {
-            $images[] = [ // $image->ordering
-                'target_id' => self::mediaJob($image->filename, (!empty($image->description) ? $image->description : $image->title), '', $user_id, $image->dirId)
-            ];
+            $media = self::mediaJob($image->filename, (!empty($image->description) ? $image->description : $image->title), '', $user_id, $image->dirId);
+            if($media)
+            {
+                $images[] = [ // $image->ordering
+                    'target_id' => $media
+                ];
+            }
+
         }
 
         // create gallery
