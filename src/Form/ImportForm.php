@@ -255,7 +255,7 @@ class ImportForm extends FormBase {
             'title'             => t('@title', ['@title' => $data['Title']]),
             'field_seo_title'   => $data['Title'], //t('@title', ['@title' => $data['Title']]),
             "promote"           => 1,
-            "status"            => 1,
+            "status"            => (!empty($data['Trash']) && "0" == $data['Trash'] ? 1 : 0),
             'langcode'          => 'cs',
             "created"           => $created->getTimestamp(),
             "changed"           => $created->getTimestamp(),
@@ -570,9 +570,10 @@ class ImportForm extends FormBase {
                 ->getStorage('paragraph')
                 ->loadByProperties(['field_media.target_id' => end($galleryExisting)]);
 
-            if(end($gallery_paragraph))
+            $p = end($gallery_paragraph);
+            if($p)
             {
-                return ['target_id' => $gallery_paragraph->id(), 'target_revision_id' => $gallery_paragraph->getRevisionId()];
+                return ['target_id' => $p->id(), 'target_revision_id' => $p->getRevisionId()];
             }
         }
 
