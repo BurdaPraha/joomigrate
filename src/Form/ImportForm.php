@@ -234,7 +234,7 @@ class ImportForm extends FormBase {
     {
         // fix entities
         foreach($data as $k => $v) {
-            $data[$k] = is_string($v) ? html_entity_decode($v) : $v;
+            $data[$k] = is_string($v) ? preg_replace_callback("/(&#[0-9]+;)/", function($m) { return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES"); }, $v) : $v;
         }
 
         // load node by joomla id
