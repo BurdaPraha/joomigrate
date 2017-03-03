@@ -307,7 +307,7 @@ class ImportForm extends FormBase {
         if(true == $promotion)
         {
             $variables['field_channel'] = [
-                'target_id' => self::channelJob('--- Check this! ---')
+                'target_id' => self::channelJob('PR článek')
             ];
         }
 
@@ -330,7 +330,7 @@ class ImportForm extends FormBase {
         {
             $variables['status'] = 0;
             $variables['field_channel'] = [
-                'target_id' => self::channelJob('PR článek')
+                'target_id' => self::channelJob('--- Check this! ---')
             ];
         }
 

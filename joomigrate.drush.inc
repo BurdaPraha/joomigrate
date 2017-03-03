@@ -182,7 +182,7 @@ function drush_joomigrate_post_delete_all()
 {
     drush_joomigrate_post_delete_articles();
     drush_joomigrate_post_delete_channels();
-    drush_joomigrate_post_delete_images();
     drush_joomigrate_post_delete_galleries();
+    drush_joomigrate_post_delete_images();
     drush_joomigrate_post_delete_users();
 }
