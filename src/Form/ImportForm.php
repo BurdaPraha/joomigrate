@@ -343,31 +343,6 @@ class ImportForm extends FormBase {
             // create new!
             $node = Node::create($values);
             $node->save();
-
-            $paragraphs = $node->get('field_paragraphs')->getValue();
-            $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id);
-
-            // Gallery
-            if(!empty($data['Images for the Gallery']) && strlen($data['Images for the Gallery']) > 20)
-            {
-                $paragraphs[] = self::mediaGalleryJob((!empty($data['Gallery Name']) ? $data['Gallery Name'] : $data['Title']), $data['Images for the Gallery'], $data['ID'], $user_id);
-            }
-
-            // video paragraph, todo
-            if(!empty($data['Video']))
-            {
-                //$paragraphs[] = self::videoJob($data['Video']);
-            }
-
-            // save paragraphs
-            $node->set('field_paragraphs', $paragraphs);
-            //$node->field_paragraphs = $paragraphs;
-
-
-            // update article
-            $node->save();
-
-
             // todo: create path auto alias
             //\Drupal::service('path.alias_storage')->save("/node/" . $node->id(), "/" . $data['Alias'], "cs");
 
@@ -377,18 +352,31 @@ class ImportForm extends FormBase {
             /**
              **** UPDATE NEW ARTICLE ****
              */
-
-            foreach($values as $key => $value)
-            {
-                //$node->set = array($key, $value);
-            }
-
-
-            // save updated node
-            $node->save();
-
             // todo: url for node - update
         }
+
+        $paragraphs = $node->get('field_paragraphs')->getValue();
+        $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id);
+
+        // Gallery
+        if(!empty($data['Images for the Gallery']) && strlen($data['Images for the Gallery']) > 20)
+        {
+            $paragraphs[] = self::mediaGalleryJob((!empty($data['Gallery Name']) ? $data['Gallery Name'] : $data['Title']), $data['Images for the Gallery'], $data['ID'], $user_id);
+        }
+
+        // video paragraph, todo
+        if(!empty($data['Video']))
+        {
+            //$paragraphs[] = self::videoJob($data['Video']);
+        }
+
+        // save paragraphs
+        $node->set('field_paragraphs', $paragraphs);
+        //$node->field_paragraphs = $paragraphs;
+
+
+        // save updated node
+        $node->save();
 
 
         // validate process errors
