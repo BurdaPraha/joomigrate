@@ -22,7 +22,7 @@ function joomigrate_drush_command()
     $items['delete-channels'] = [
         'description'           => 'It will delete all imported channels from database',
         'drupal dependencies'   => ['joomigrate'],
-        'aliases'               => ['joomigrate:delete-channesl'],
+        'aliases'               => ['joomigrate:delete-channels'],
     ];
     $items['delete-images'] = [
         'description'           => 'It will delete all imported images from database, files not',
@@ -85,6 +85,7 @@ function drush_joomigrate_post_delete_channels()
     if(count($ids) > 0){
         entity_delete_multiple('taxonomy_term', $ids);
     }
+
     drush_print('All channels with `field_joomla_id` was deleted!');
 }
 
