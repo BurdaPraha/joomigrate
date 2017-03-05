@@ -320,7 +320,7 @@ class ImportForm extends FormBase {
             $data['Category Name'],
             $data['Meta Description'],
             $data['Perex'],
-            ],
+        ],
             [
                 'Promotion',
                 'Komerční',
@@ -336,7 +336,7 @@ class ImportForm extends FormBase {
             $data['Category Name'],
             $data['Meta Description'],
             $data['Perex'],
-            ],
+        ],
             [
                 'Test',
                 'empty category',
@@ -418,6 +418,10 @@ class ImportForm extends FormBase {
         }
 
         // use existing alias
+        $values['path'] = [
+            'pathauto'  => 0,
+            'alias'     => '/' . $data['Alias']
+        ];
         //\Drupal::service('path.alias_storage')->save("/node/" . $node->id(), "/" . $data['Alias'], "cs");
 
 
@@ -441,7 +445,7 @@ class ImportForm extends FormBase {
             foreach ($paragraphs as $n => $i)
             {
                 $p = Paragraph::load($i['target_id']);
-                $p->delete();
+                if($p){ $p->delete(); }
             }
 
         }
@@ -454,7 +458,7 @@ class ImportForm extends FormBase {
         // have a gallery?
         if(!empty($data['Images for the Gallery']) && strlen($data['Images for the Gallery']) > 20)
         {
-            $paragraphs[] = self::mediaGalleryJob((!empty($data['Gallery Name']) ? $data['Gallery Name'] : $data['Title']), $data['Images for the Gallery'], $data['ID'], $user_id);
+            $paragraphs[] = self::mediaGalleryJob($data['Title'], $data['Images for the Gallery'], $data['Alias'], $data['ID'], $user_id);
         }
 
 
@@ -631,26 +635,38 @@ class ImportForm extends FormBase {
         }
 
         // create new
-        $file_data  = file_get_contents(\Drupal::root() . "/sites/default/files/joomla/{$path}");
-        $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . $image_name, FILE_EXISTS_REPLACE);
-
-        if($file)
+        $path = \Drupal::root() . "/sites/default/files/joomla/{$path}";
+        if(file_exists($path))
         {
-            $image_media = Media::create([
-                'bundle'            => 'image',
-                'uid'               => $user,
-                'status'            => Media::PUBLISHED,
-                'field_joomla_id'   => substr($import_id, 0, 7),
-                'field_description' => $description,
-                'field_source'      => $credits,
-                'field_image'       => [
-                    'target_id' => $file->id(),
-                    //'alt'       => t('@alt', ['@alt' => substr($description, 0, 155)]),
-                ],
-            ]);
-            $image_media->setQueuedThumbnailDownload();
-            $image_media->save();
-            return $image_media->id();
+            $file_data  = file_get_contents($path);
+            $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . $image_name, FILE_EXISTS_REPLACE);
+
+            if($file)
+            {
+                $image_media = Media::create([
+                    'bundle'            => 'image',
+                    'uid'               => $user,
+                    'status'            => Media::PUBLISHED,
+                    'field_joomla_id'   => substr($import_id, 0, 7),
+                    'field_description' => $description,
+                    'field_source'      => $credits,
+                    'field_image'       => [
+                        'target_id' => $file->id(),
+                        //'alt'       => t('@alt', ['@alt' => substr($description, 0, 155)]),
+                    ],
+                ]);
+                $image_media->setQueuedThumbnailDownload();
+                $image_media->save();
+                return $image_media->id();
+            }
+            else
+            {
+                drupal_set_message('Problem with file_save_data, file: "' . $path . '"', 'warning');
+            }
+        }
+        else
+        {
+            drupal_set_message('File: "' . $path . '" not exist!', 'warning');
         }
 
         return null;
@@ -661,11 +677,12 @@ class ImportForm extends FormBase {
      * Gallery array with objects
      * @param $name
      * @param $pseudoJson
+     * @param $alias
      * @param $article_id
      * @param int $user_id
      * @return array
      */
-    private static function mediaGalleryJob($name, $pseudoJson, $article_id, $user_id = 1)
+    private static function mediaGalleryJob($name, $pseudoJson, $alias, $article_id, $user_id = 1)
     {
         /*** Check existing gallery ****/
         $galleryExisting = \Drupal::entityQuery('media')
@@ -713,8 +730,14 @@ class ImportForm extends FormBase {
             'status'              => Media::PUBLISHED,
             'name'                => $name,
             'field_media_images'  => $images,
-            'field_gallery_joomla_id' => $article_id
+            'field_gallery_joomla_id' => $article_id,
+            'path' => [
+                'pathauto'  => 0,
+                'alias'     => '/galerie/' . $alias
+            ]
         ]);
+
+
         $gallery_media->setQueuedThumbnailDownload();
         $gallery_media->save();
 
@@ -760,47 +783,7 @@ class ImportForm extends FormBase {
         ]);
         $term->save();
 
-        //self::createAlias('taxonomy', $term->id(), $name); // todo!
-
         return $term->id();
-    }
-
-
-    /**
-     * Path auto - create alias for entity, todo!
-     * @param $entity_name string
-     * @param $id int
-     * @param $alias string
-     */
-    private static function createAlias($entity_name, $id, $alias)
-    {
-        $prefix = '';
-        switch($entity_name)
-        {
-            case 'node':
-                $type = '/node/';
-                break;
-
-            case 'taxonony':
-                $type = '/taxonomy/term/';
-                break;
-
-            case 'media':
-                $type = '/media/';
-                break;
-
-            case 'user':
-                $type = '/user/';
-                break;
-
-            default:
-                $type = '';
-                break;
-        }
-
-        $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
-        \Drupal::service('path.alias_storage')->save($type . $id, $prefix . $alias, $language);
-        // see: http://drupal.stackexchange.com/questions/146286/is-it-possible-to-programmatically-add-a-path-alias-to-a-programmatically-create/225922#225922
     }
 
 
