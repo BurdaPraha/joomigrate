@@ -221,6 +221,67 @@ class ImportForm extends FormBase {
     }
 
 
+    /**
+     * @param $headers_data
+     * @return bool
+     */
+    public function validCsv($headers_data) {
+        $is_valid = FALSE;
+        foreach ($headers_data as $key => $header) {
+            $is_valid = $key == $header;
+        }
+        return $is_valid;
+    }
+
+
+    /**
+     * Strict header columns
+     * @return array
+     */
+    public function getCsvHeaders() {
+        return array(
+            'ID',
+            'Title',
+            'Alias',
+            'Introtext',
+            'Perex',
+            'Tags',
+            'Published',
+            'Publish Up',
+            'Publish Down',
+            'Access',
+            'Trash',
+            'Created',
+            'User ID',
+            'Hits',
+            'Language',
+            'Video',
+            'Ordering',
+            'Featured',
+            'Featured ordering',
+            'Image',
+            'Image caption',
+            'Image credits',
+            'Video caption',
+            'Video credits',
+            'Gallery Name',
+            'Images for the Gallery',
+            'Meta Description',
+            'Meta Data',
+            'Meta Keywords',
+            'Teaser image',
+            'Item Plugins',
+            'Category Name',
+            'Category Description',
+            'Category Access',
+            'Category Trash',
+            'Category Plugins',
+            'Category Image',
+            'Category Language',
+            'Comments'
+        );
+    }
+
 
     /**
      * Processes the article synchronization batch.
@@ -232,33 +293,85 @@ class ImportForm extends FormBase {
      */
     public static function processBatch($data, &$context)
     {
-        // fix entities
-        foreach($data as $k => $v) {
-            $data[$k] = is_string($v) ? preg_replace_callback("/(&#[0-9]+;)/", function($m) { return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES"); }, $v) : $v;
-        }
+        // get db instance
+        $db = \Drupal::database();
 
         // load node by joomla id
         $nodes = \Drupal::entityTypeManager()
             ->getStorage('node')
             ->loadByProperties(['field_joomla_id' => $data['ID']]);
 
-        // get result from array
+
+        // get one entity from array
         $node = end($nodes);
 
-        // format dates
-        $created      = new \DateTime($data['Created']);
-        $user_id      = self::userJob($data['User ID']);
 
+        $paragraphs = [];
+        $created    = new \DateTime($data['Created']);
+
+
+        // find or create author
+        $user_id    = self::userJob($data['User ID']);
+
+
+        // Promotion - todo: move parameters to form input / database, out of the script
+        $promotion = self::checkPromotionArticle([
+            $data['Title'],
+            $data['Category Name'],
+            $data['Meta Description'],
+            $data['Perex'],
+        ],
+            [
+                'Promotion',
+                'Komerční',
+                'Reklama',
+                'Advertisment'
+            ]
+        );
+
+
+        // Find ugly articles - todo: move parameters to form input / database, out of the script
+        $draft = self::checkDraftArticle([
+            $data['Title'],
+            $data['Category Name'],
+            $data['Meta Description'],
+            $data['Perex'],
+        ],
+            [
+                'Test',
+                'empty category',
+                'Testing',
+                'Koncept'
+            ]
+        );
+
+
+        $status = (
+        (!empty($data['Trash']) && "0" == $data['Trash']) &&
+        (!empty($data['Published']) && "1" == $data['Published']) ?
+            1 : 0
+        );
+
+
+        // setup basic values
         $values = [
             'field_joomla_id'   => $data['ID'],
             'type'              => 'article',
-            'title'             => t('@title', ['@title' => $data['Title']]),
-            'field_seo_title'   => $data['Title'], //t('@title', ['@title' => $data['Title']]),
-            "promote"           => 1,
-            "status"            => (!empty($data['Trash']) && "0" == $data['Trash'] ? 1 : 0),
             'langcode'          => 'cs',
+            "promote"           => 1,
+
+            // visible?
+            "status"            => $status,
+
+            // titles
+            'title'             => self::string($data['Title']),
+            'field_seo_title'   => self::string($data['Title']),
+
+            // times
             "created"           => $created->getTimestamp(),
             "changed"           => $created->getTimestamp(),
+
+            // category
             'field_channel'     => [
                 'target_id' => self::channelJob($data['Category Name'])
             ],
@@ -270,39 +383,14 @@ class ImportForm extends FormBase {
 
             // author
             "uid"                 => $user_id,
+
+            // meta tags
             "description"         => $data['Meta Description'],
 
             // perex
             'field_teaser_text'   => $data['Perex'],
         ];
 
-
-        // Teaser media
-        if(!empty($data['Teaser image']) && strlen($data['Teaser image']) > 20)
-        {
-            $media = self::mediaJob($data['Teaser image'], $data['Image caption'], $data['Image credits'], $data['User ID'], $data['ID']);
-            if($media)
-            {
-                $values['field_teaser_media'] = [
-                    'target_id' => $media,
-                ];
-            }
-        }
-
-
-        // Promotion - todo: move parameters to form input / database, out of the script
-        $promotion = self::checkPromotionArticle([
-            $data['Title'],
-            $data['Category Name'],
-            $data['Meta Description'],
-            $data['Perex'],
-            ],
-            [
-                'Promotion',
-                'Komerční',
-                'Reklama',
-                'Advertisment'
-        ]);
 
         if(true == $promotion)
         {
@@ -311,20 +399,6 @@ class ImportForm extends FormBase {
             ];
         }
 
-
-        // Find ugly articles - todo: move parameters to form input / database, out of the script
-        $draft = self::checkDraftArticle([
-            $data['Title'],
-            $data['Category Name'],
-            $data['Meta Description'],
-            $data['Perex'],
-        ],
-        [
-            'Test',
-            'empty category',
-            'Testing',
-            'Koncept'
-        ]);
 
         if(true == $draft)
         {
@@ -335,48 +409,100 @@ class ImportForm extends FormBase {
         }
 
 
-        /**
-         **** CREATE NEW ARTICLE ****
-         */
+        // Teaser media
+        if(!empty($data['Teaser image']) && strlen($data['Teaser image']) > 10)
+        {
+            $media = self::mediaJob($data['Teaser image'], $data['Image caption'], $data['Image credits'], $data['User ID'], $data['ID']);
+            if($media)
+            {
+                $values['field_teaser_media'] = [
+                    'target_id' => $media,
+                ];
+            }
+        }
+
+        // use existing alias
+        //\Drupal::service('path.alias_storage')->save("/node/" . $node->id(), "/" . $data['Alias'], "cs");
+
+
         if (false == $node)
         {
-            // create new!
+            // it's a new article
             $node = Node::create($values);
-            $node->save();
-            // todo: create path auto alias
-            //\Drupal::service('path.alias_storage')->save("/node/" . $node->id(), "/" . $data['Alias'], "cs");
-
         }
         else
         {
-            /**
-             **** UPDATE NEW ARTICLE ****
-             */
-            // todo: url for node - update
+            // it's exist
+
+            // update values
+            foreach($values as $key => $value)
+            {
+                //$node->{$key} = $value;
+            }
+
+            // remove all paragraphs for easy update
+            $paragraphs = $node->get('field_paragraphs')->getValue();
+            foreach ($paragraphs as $n => $i)
+            {
+                $p = Paragraph::load($i['target_id']);
+                $p->delete();
+            }
+
         }
 
-        $paragraphs = $node->get('field_paragraphs')->getValue();
+
+        // main content
         $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id);
 
-        // Gallery
+
+        // have a gallery?
         if(!empty($data['Images for the Gallery']) && strlen($data['Images for the Gallery']) > 20)
         {
             $paragraphs[] = self::mediaGalleryJob((!empty($data['Gallery Name']) ? $data['Gallery Name'] : $data['Title']), $data['Images for the Gallery'], $data['ID'], $user_id);
         }
 
-        // video paragraph, todo
+
+        // have a video?
         if(!empty($data['Video']))
         {
             //$paragraphs[] = self::videoJob($data['Video']);
         }
 
+
         // save paragraphs
         $node->set('field_paragraphs', $paragraphs);
-        //$node->field_paragraphs = $paragraphs;
 
 
         // save updated node
         $node->save();
+
+
+        // article read counter
+        if(!empty($data['Hits']) && $data['Hits'] > 0)
+        {
+            // check if exist statistic row for article
+            $counter_exist = $db->select('node_counter', 'n');
+            $counter_exist->addField('n', 'nid');
+            $counter_exist->condition('n.nid', $node->id());
+            $counter_data = $counter_exist->execute()->fetchField();
+
+            if($counter_data)
+            {
+                $counter_delete = $db->delete('node_counter');
+                $counter_delete->condition('nid', $node->id());
+                $counter_delete->execute();
+            }
+
+            // insert new statistic from CSV
+            $counter_new = $db->insert('node_counter');
+            $counter_new->fields([
+                'nid'           => $node->id(),
+                'totalcount'    => $data['Hits'],
+                'daycount'      => $data['Hits'],
+                'timestamp'     => time()
+            ]);
+            $counter_new->execute();
+        }
 
 
         // validate process errors
@@ -724,6 +850,17 @@ class ImportForm extends FormBase {
 
 
     /**
+     * Convert entity to characters
+     * @param $v
+     * @return mixed
+     */
+    public static function string($v)
+    {
+        return is_string($v) ? preg_replace_callback("/(&#[0-9]+;)/", function($m) { return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES"); }, $v) : $v;
+    }
+
+
+    /**
      * Finish batch.
      *
      * This function is a static function to avoid serializing the ConfigSync
@@ -746,74 +883,11 @@ class ImportForm extends FormBase {
             // An error occurred.
             // $operations contains the operations that remained unprocessed.
             $error_operation = reset($operations);
-            $message = \Drupal::translation()->translate('An error occurred while processing @error_operation with arguments: @arguments', [
+            $message = \Drupal::translation()->translate('An error occurred while processing @error_operation with arguments: <pre>@arguments</pre>', [
                 '@error_operation' => $error_operation[0],
                 '@arguments' => print_r($error_operation[1], TRUE)
             ]);
             drupal_set_message($message, 'error');
         }
     }
-
-
-    /**
-     * Strict header columns
-     * @return array
-     */
-    public function getCsvHeaders() {
-        return array(
-            'ID',
-            'Title',
-            'Alias',
-            'Introtext',
-            'Perex',
-            'Tags',
-            'Published',
-            'Publish Up',
-            'Publish Down',
-            'Access',
-            'Trash',
-            'Created',
-            'User ID',
-            'Hits',
-            'Language',
-            'Video',
-            'Ordering',
-            'Featured',
-            'Featured ordering',
-            'Image',
-            'Image caption',
-            'Image credits',
-            'Video caption',
-            'Video credits',
-            'Gallery Name',
-            'Images for the Gallery',
-            'Meta Description',
-            'Meta Data',
-            'Meta Keywords',
-            'Teaser image',
-            'Item Plugins',
-            'Category Name',
-            'Category Description',
-            'Category Access',
-            'Category Trash',
-            'Category Plugins',
-            'Category Image',
-            'Category Language',
-            'Comments'
-        );
-    }
-
-
-    /**
-     * @param $headers_data
-     * @return bool
-     */
-    public function validCsv($headers_data) {
-        $is_valid = FALSE;
-        foreach ($headers_data as $key => $header) {
-            $is_valid = $key == $header;
-        }
-        return $is_valid;
-    }
-
 }
