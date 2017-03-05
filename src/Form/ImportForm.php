@@ -320,7 +320,7 @@ class ImportForm extends FormBase {
             $data['Category Name'],
             $data['Meta Description'],
             $data['Perex'],
-        ],
+            ],
             [
                 'Promotion',
                 'Komerční',
@@ -336,7 +336,7 @@ class ImportForm extends FormBase {
             $data['Category Name'],
             $data['Meta Description'],
             $data['Perex'],
-        ],
+            ],
             [
                 'Test',
                 'empty category',
@@ -345,12 +345,8 @@ class ImportForm extends FormBase {
             ]
         );
 
-
-        $status = (
-        (!empty($data['Trash']) && "0" == $data['Trash']) &&
-        (!empty($data['Published']) && "1" == $data['Published']) ?
-            1 : 0
-        );
+        // is article public?
+        $status = ("0" == $data['Trash'] && "1" == $data['Published'] ? 1 : 0);
 
 
         // setup basic values
@@ -437,7 +433,7 @@ class ImportForm extends FormBase {
             // update values
             foreach($values as $key => $value)
             {
-                //$node->{$key} = $value;
+                $node->{$key} = $value;
             }
 
             // remove all paragraphs for easy update
@@ -641,13 +637,13 @@ class ImportForm extends FormBase {
         if($file)
         {
             $image_media = Media::create([
-                'bundle'  => 'image',
-                'uid'     => $user,
-                'status'  => Media::PUBLISHED,
+                'bundle'            => 'image',
+                'uid'               => $user,
+                'status'            => Media::PUBLISHED,
                 'field_joomla_id'   => substr($import_id, 0, 7),
                 'field_description' => $description,
                 'field_source'      => $credits,
-                'field_image' => [
+                'field_image'       => [
                     'target_id' => $file->id(),
                     //'alt'       => t('@alt', ['@alt' => substr($description, 0, 155)]),
                 ],
