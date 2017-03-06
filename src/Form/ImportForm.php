@@ -520,6 +520,9 @@ class ImportForm extends FormBase {
         if(!empty($data['Images for the Gallery']) && strlen($data['Images for the Gallery']) > 20)
         {
             $paragraphs[] = self::mediaGalleryJob($data['Title'], $data['Images for the Gallery'], $data['Alias'], $data['ID'], $user_id);
+
+            // change to gallery type
+            $node->set('field_article_type', ['target_id' => 5]);
         }
 
 
