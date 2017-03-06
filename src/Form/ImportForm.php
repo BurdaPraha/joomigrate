@@ -397,6 +397,9 @@ class ImportForm extends FormBase {
 
             // perex
             'field_teaser_text'   => strip_tags($data['Perex']),
+
+            // read counter
+            'field_read_count'    => strlen($data['Hits']) > 0 ? trim((int) $data['Hits']) : 0,
         ];
 
 
@@ -529,7 +532,13 @@ class ImportForm extends FormBase {
         // have a video?
         if(!empty($data['Video']))
         {
-            $paragraphs[] = self::videoJob($data['Video'], $user_id);
+            $videos = self::videoJob($data['Video'], $user_id);
+            $paragraphs[] = $videos;
+
+            if(count($videos) > 0)
+            {
+                $node->set('field_article_type', ['target_id' => 5]);
+            }
         }
 
 
@@ -539,34 +548,6 @@ class ImportForm extends FormBase {
 
         // save updated node
         $node->save();
-
-
-        // article read counter
-        if(!empty($data['Hits']) && $data['Hits'] > 0)
-        {
-            // check if exist statistic row for article
-            $counter_exist = $db->select('node_counter', 'n');
-            $counter_exist->addField('n', 'nid');
-            $counter_exist->condition('n.nid', $node->id());
-            $counter_data = $counter_exist->execute()->fetchField();
-
-            if($counter_data)
-            {
-                $counter_delete = $db->delete('node_counter');
-                $counter_delete->condition('nid', $node->id());
-                $counter_delete->execute();
-            }
-
-            // insert new statistic from CSV
-            $counter_new = $db->insert('node_counter');
-            $counter_new->fields([
-                'nid'           => $node->id(),
-                'totalcount'    => $data['Hits'],
-                'daycount'      => $data['Hits'],
-                'timestamp'     => time()
-            ]);
-            $counter_new->execute();
-        }
 
 
         // validate process errors
