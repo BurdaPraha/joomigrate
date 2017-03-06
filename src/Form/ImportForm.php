@@ -351,7 +351,7 @@ class ImportForm extends FormBase {
         );
 
         // is article public?
-        $status = ("0" == trim($data['Trash']) && "1" == trim($data['Published']) ? 1 : 0);
+        $status = (0 == trim($data['Trash']) && 1 == trim($data['Published']) ? 1 : 0);
 
 
         // setup basic values
@@ -501,7 +501,7 @@ class ImportForm extends FormBase {
 
 
         // main content
-        if(!empty($data['Introtext']) && strlen($data['Introtext']) > 10)
+        if(!empty($data['Introtext']) && strlen(strip_tags($data['Introtext'])) > 10)
         {
             $paragraphs[]   = self::paragraphJob($data['Introtext'], $user_id, $data['ID']);
         }
@@ -517,7 +517,7 @@ class ImportForm extends FormBase {
         // have a video?
         if(!empty($data['Video']))
         {
-            //$paragraphs[] = self::videoJob($data['Video'], $user_id);
+            $paragraphs[] = self::videoJob($data['Video'], $user_id);
         }
 
 
@@ -694,21 +694,25 @@ class ImportForm extends FormBase {
      */
     private static function parseYoutube($string)
     {
-        $id = '';
-        return $id;
+        preg_match("/^(?:http(?:s)?:\/\/)?(?:www\.)?(?:m\.)?(?:youtu\.be\/|youtube\.com\/(?:(?:watch)?\?(?:.*&)?v(?:i)?=|(?:embed|v|vi|user)\/))([^\?&\"'>]+)/", $string, $matches);
+        if(isset($matches[1]))
+        {
+            return $matches[1];
+        }
+        return null;
     }
 
 
     /**
-     * Todo!
+     * Todo: youtube
      * @param $video
+     * @param $user_id
      * @return array
      */
     private static function videoJob($video, $user_id)
     {
-        return null; // todo
-
         $paragraphs = [];
+        $video_paragraph = null;
 
         // all is for now array - one format
         $encoded = json_decode($video);
@@ -719,49 +723,52 @@ class ImportForm extends FormBase {
 
         foreach($encoded as $k => $s)
         {
+            // {mp4}29660{/mp4}
             $mp4        = self::parseShortCode($video, 'mp4');
             $youtube    = self::parseShortCode($video, 'YouTube');
+            // ["{YouTube}a0a6Y9JvPqo{\/YouTube}"]
+            // ["{YouTube}http:\/\/ti.me\/1NxWIZZ{\/YouTube}","{YouTube}http:\/\/ti.me\/1Pk2QdH{\/YouTube}"]
+            // ["{YouTube}https:\/\/www.youtube.com\/watch?v=20RoyFU4mjg{\/YouTube}"]
 
             if($mp4)
             {
-                $type   = 'video'; // todo!
-                $value  = 'media/k2/videos/' . $mp4 . '/';
-                $file   = self::fileJob($value, $mp4 . '.mp4');
+                $file   = self::fileJob('media/k2/videos/' . $mp4 . '/', $mp4 . '.mp4');
+                $video_paragraph = Paragraph::create([
+                    'id'          => NULL,
+                    'type'        => 'video',
+                    'uid'         => $user_id,
+                    'field_file'  => [
+                        'target_id'   => $file->id()
+                    ],
+                ]);
+                $video_paragraph->isNew();
+                $video_paragraph->save();
 
             }
             if($youtube)
             {
-                $type   = 'embed'; // todo!
-
-                preg_match("/^(?:http(?:s)?:\/\/)?(?:www\.)?(?:m\.)?(?:youtu\.be\/|youtube\.com\/(?:(?:watch)?\?(?:.*&)?v(?:i)?=|(?:embed|v|vi|user)\/))([^\?&\"'>]+)/", $youtube, $matches);
-                if(isset($matches[1]))
+                $youtube_id = self::parseYoutube($video);
+                if($youtube_id)
                 {
-                    $value = $matches[1]; // todo! test it
+                    $video_paragraph = Paragraph::create([
+                        'id'                => NULL,
+                        'type'              => 'video_youtube',
+                        'uid'               => $user_id,
+                        'field_youtube_id'  => $youtube_id
+                    ]);
+                    $video_paragraph->isNew();
+                    $video_paragraph->save();
                 }
             }
-
-            // todo: ti.me parsing?!
-
-            // polozky pole
-            $paragraph = Paragraph::create([
-                'id'          => NULL,
-                'type'        => $type,
-                'uid'         => $user_id,
-                'field_text'  => [
-                    'value'   => $value,
-                    'format' => 'source',
-                ],
-            ]);
-            $paragraph->isNew();
-            $paragraph->save();
-            $paragraphs[] = ['target_id' => $paragraph->id(), 'target_revision_id' => $paragraph->getRevisionId()];
+            if($video_paragraph)
+            {
+                $paragraphs[] = [
+                    'target_id' => $video_paragraph->id(),
+                    'target_revision_id' => $video_paragraph->getRevisionId()
+                ];
+            }
         }
 
-        // {mp4}29660{/mp4}
-        // ["{YouTube}a0a6Y9JvPqo{\/YouTube}"]
-        // ["{YouTube}http:\/\/ti.me\/1NxWIZZ{\/YouTube}","{YouTube}http:\/\/ti.me\/1Pk2QdH{\/YouTube}"]
-        // ["{YouTube}https:\/\/www.youtube.com\/watch?v=20RoyFU4mjg{\/YouTube}"]
-        //
         return $paragraphs;
     }
 
