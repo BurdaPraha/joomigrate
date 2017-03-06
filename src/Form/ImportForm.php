@@ -15,6 +15,7 @@ use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\taxonomy\Entity\Term;
 use Symfony\Component\Config\Definition\Exception\Exception;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\image\Entity\ImageStyle;
 
 /**
  * Class ImportForm
@@ -390,7 +391,7 @@ class ImportForm extends FormBase {
             "description"         => $data['Meta Description'],
 
             // perex
-            'field_teaser_text'   => $data['Perex'],
+            'field_teaser_text'   => strip_tags($data['Perex']),
         ];
 
 
@@ -502,7 +503,7 @@ class ImportForm extends FormBase {
         // main content
         if(!empty($data['Introtext']) && strlen($data['Introtext']) > 10)
         {
-            $paragraphs[]   = self::paragraphJob($data['Introtext'], $user_id);
+            $paragraphs[]   = self::paragraphJob($data['Introtext'], $user_id, $data['ID']);
         }
 
 
@@ -624,7 +625,7 @@ class ImportForm extends FormBase {
      * @param int $user_id
      * @return array
      */
-    private static function paragraphJob($data, $user_id = 1)
+    private static function paragraphJob($data, $user_id = 1, $article_id)
     {
         // inline images replacing
         $doc = new \DOMDocument();
@@ -639,12 +640,10 @@ class ImportForm extends FormBase {
                 $url = $img->getAttribute('src');
 
                 // create media
-                $image_name = explode("/", $url);
-                $image_name = end($image_name);
-                $file = self::fileJob(str_replace("/" . $image_name, "", $url), $image_name);
+                $media = self::mediaJob($url, "", "", $user_id, $article_id);
 
                 // replace path
-                $url = str_replace($url, $file->getFileUri(), $url);
+                $url = ImageStyle::load('large')->buildUrl($media->field_image->entity->getFileUri());
                 $img->setAttribute('src', $url);
             }
             $data = $doc->saveHTML();
