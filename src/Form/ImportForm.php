@@ -425,13 +425,6 @@ class ImportForm extends FormBase {
             }
         }
 
-        // use existing alias
-        $values['path'] = [
-            'pathauto'  => 0,
-            'alias'     => '/' . $data['Alias']
-        ];
-
-
         // tags
         if(!empty($data['Meta Keywords']) && strlen($data['Meta Keywords']) > 5)
         {
@@ -498,6 +491,17 @@ class ImportForm extends FormBase {
                 $p = Paragraph::load($i['target_id']);
                 if($p){ $p->delete(); }
             }
+        }
+
+
+        // use existing alias
+        if(!empty($data['Alias']) && strlen($data['Alias']) > 5)
+        {
+            $path = \Drupal::service('path.alias_storage')->save('/node/' . $node->id(), '/' . $data['Alias'], 'cs');
+            $values['path'] = [
+                'pathauto'  => 0,
+                'alias'     => $path['alias']
+            ];
         }
 
 
@@ -628,6 +632,8 @@ class ImportForm extends FormBase {
      */
     private static function paragraphJob($data, $user_id = 1, $article_id)
     {
+        //{{contest}}18{{/contest}} Otestujte revoluční novinku na omlazení pleti!
+
         // inline images replacing
         $doc = new \DOMDocument();
         $doc->loadHTML(mb_convert_encoding($data, 'HTML-ENTITIES', 'UTF-8'));
