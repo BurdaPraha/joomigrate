@@ -430,6 +430,52 @@ class ImportForm extends FormBase {
         ];
 
 
+        // tags
+        if(!empty($data['Meta Keywords']) && strlen($data['Meta Keywords']) > 5)
+        {
+            $tags       = [];
+            $keywords   = explode(',', $data['Meta Keywords']);
+
+            foreach($keywords as $k => $tag)
+            {
+                // tag name
+                $name = trim($tag);
+
+                // check existing id
+                $tagExist = \Drupal::entityQuery('taxonomy_term')
+                    ->condition('vid', 'tags')
+                    ->condition('name', $name, 'CONTAINS')
+                    ->execute();
+
+                if($tagExist)
+                {
+                    // use existing
+                    $term_id = end($tagExist);
+                }
+                else
+                {
+                    // not exist
+                    $term = Term::create([
+                        'vid'                   => 'tags',
+                        'name'                  => $name,
+                        'field_tag_joomla_id'   => $data['ID']
+                    ]);
+                    $term->save();
+                    $term_id = $term->id();
+                }
+
+                // store
+                $tags[] = ['target_id' => $term_id];
+            }
+
+            // return var
+            if(count($tags) > 1)
+            {
+                $variables['field_tags'] = $tags;
+            }
+        }
+
+
         // it's a new article
         if (false == $node)
         {
@@ -456,7 +502,7 @@ class ImportForm extends FormBase {
         // main content
         if(!empty($data['Introtext']) && strlen($data['Introtext']) > 10)
         {
-            $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id);
+            $paragraphs[]   = self::paragraphJob($data['Introtext'], $user_id);
         }
 
 
@@ -582,25 +628,27 @@ class ImportForm extends FormBase {
     {
         // inline images replacing
         $doc = new \DOMDocument();
-        $doc->loadHTML($data);
+        $doc->loadHTML(mb_convert_encoding($data, 'HTML-ENTITIES', 'UTF-8'));
         $images = $doc->getElementsByTagName('img');
 
-        foreach ($images as $img)
+        if($images)
         {
-            // get original url
-            $url = $img->getAttribute('src');
+            foreach ($images as $img)
+            {
+                // get original url
+                $url = $img->getAttribute('src');
 
-            // create media
-            $image_name = explode("/", $url);
-            $image_name = end($image_name);
-            $file = self::fileJob(str_replace("/" . $image_name, "", $url), $image_name);
+                // create media
+                $image_name = explode("/", $url);
+                $image_name = end($image_name);
+                $file = self::fileJob(str_replace("/" . $image_name, "", $url), $image_name);
 
-            // replace path
-            $url = str_replace($url, $file->getFileUri(), $url);
-            $img->setAttribute('src', $url);
+                // replace path
+                $url = str_replace($url, $file->getFileUri(), $url);
+                $img->setAttribute('src', $url);
+            }
+            $data = $doc->saveHTML();
         }
-        $data = $doc->saveHTML();
-
 
         // clear ugly code
         $value = str_replace("{{gallery}}", "", $data);
@@ -773,7 +821,8 @@ class ImportForm extends FormBase {
 
             if(end($media_exist))
             {
-                return end($media_exist);
+                $media_id = end($media_exist);
+                return Media::load($media_id);
             }
         }
 
@@ -896,7 +945,7 @@ class ImportForm extends FormBase {
     {
         $channelExisting = \Drupal::entityTypeManager()
             ->getStorage('taxonomy_term')
-            ->loadByProperties(['name' => $name]);
+            ->loadByProperties(['name' => $name, 'vid' => 'channel']);
 
         if($channelExisting)
         {

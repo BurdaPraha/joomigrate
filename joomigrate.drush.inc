@@ -24,6 +24,11 @@ function joomigrate_drush_command()
         'drupal dependencies'   => ['joomigrate'],
         'aliases'               => ['joomigrate:delete-channels'],
     ];
+    $items['delete-tags'] = [
+        'description'           => 'It will delete all imported tags from database',
+        'drupal dependencies'   => ['joomigrate'],
+        'aliases'               => ['joomigrate:delete-tags'],
+    ];
     $items['delete-images'] = [
         'description'           => 'It will delete all imported images from database, files not',
         'drupal dependencies'   => ['joomigrate'],
@@ -78,6 +83,7 @@ function drush_joomigrate_post_delete_articles()
 function drush_joomigrate_post_delete_channels()
 {
     $ids = \Drupal::entityQuery('taxonomy_term')
+        ->condition('vid', 'channel')
         ->exists('field_joomla_id')
         ->condition('field_joomla_id', 0, '>')
         ->execute();
@@ -85,8 +91,27 @@ function drush_joomigrate_post_delete_channels()
     if(count($ids) > 0){
         entity_delete_multiple('taxonomy_term', $ids);
     }
-
     drush_print('All channels with `field_joomla_id` was deleted!');
+}
+
+
+/**
+ * Call back function drush_custom_drush_command_say_hello()
+ * The call back function name in the  following format
+ *   drush_{module_name}_{item_id_for_command}()
+ */
+function drush_joomigrate_post_delete_tags()
+{
+    $ids = \Drupal::entityQuery('taxonomy_term')
+        ->condition('vid', 'tags')
+        ->exists('field_joomla_id')
+        ->condition('field_joomla_id', 0, '>')
+        ->execute();
+
+    if(count($ids) > 0){
+        entity_delete_multiple('taxonomy_term', $ids);
+    }
+    drush_print('All tags with `field_joomla_id` was deleted!');
 }
 
 
@@ -98,7 +123,7 @@ function drush_joomigrate_post_delete_channels()
 function drush_joomigrate_post_delete_images()
 {
     $siz = \Drupal::entityQuery('media')
-        ->condition('bundle', 'image')
+        ->condition('vid', 'image')
         ->exists('field_joomla_id')
         ->condition('field_joomla_id', 0, '>')
         ->count()
@@ -182,7 +207,8 @@ function drush_joomigrate_post_delete_all()
 {
     drush_joomigrate_post_delete_articles();
     drush_joomigrate_post_delete_channels();
-    drush_joomigrate_post_delete_galleries();
+    drush_joomigrate_post_delete_tags();
     drush_joomigrate_post_delete_images();
+    drush_joomigrate_post_delete_galleries();
     drush_joomigrate_post_delete_users();
 }
