@@ -350,8 +350,9 @@ class ImportForm extends FormBase {
             ]
         );
 
+
         // is article public?
-        $status = (0 == trim($data['Trash']) && 1 == trim($data['Published']) ? 1 : 0);
+        $status = ('0' == trim($data['Trash']) && '1' == trim($data['Published']) ? 1 : 0);
 
 
         // setup basic values
