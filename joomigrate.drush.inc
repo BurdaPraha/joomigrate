@@ -19,6 +19,11 @@ function joomigrate_drush_command()
         'drupal dependencies'   => ['joomigrate'],
         'aliases'               => ['joomigrate:delete-articles'],
     ];
+    $items['delete-authors'] = [
+        'description'           => 'It will delete all imported authors from database',
+        'drupal dependencies'   => ['joomigrate'],
+        'aliases'               => ['joomigrate:delete-authors'],
+    ];
     $items['delete-channels'] = [
         'description'           => 'It will delete all imported channels from database',
         'drupal dependencies'   => ['joomigrate'],
@@ -184,17 +189,21 @@ function drush_joomigrate_post_delete_galleries()
  * The call back function name in the  following format
  *   drush_{module_name}_{item_id_for_command}()
  */
-function drush_joomigrate_post_delete_users()
+function drush_joomigrate_post_delete_authors()
 {
     $ids = \Drupal::entityQuery('user')
         ->exists('field_joomla_id')
         ->condition('field_joomla_id', 0, '>')
+        ->condition('field_first_name', '')
+        ->condition('field_last_name', '')
         ->execute();
+
+    drush_print(var_export($ids));
 
     if(count($ids) > 0){
         entity_delete_multiple('media', $ids);
     }
-    drush_print('All users with `field_joomla_id` was deleted!');
+    drush_print('All authors with `field_joomla_id` was deleted!');
 }
 
 
@@ -210,5 +219,5 @@ function drush_joomigrate_post_delete_all()
     drush_joomigrate_post_delete_tags();
     drush_joomigrate_post_delete_images();
     drush_joomigrate_post_delete_galleries();
-    drush_joomigrate_post_delete_users();
+    drush_joomigrate_post_delete_authors();
 }

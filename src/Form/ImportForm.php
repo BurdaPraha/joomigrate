@@ -642,9 +642,13 @@ class ImportForm extends FormBase {
                 // create media
                 $media = self::mediaJob($url, "", "", $user_id, $article_id);
 
-                // replace path
-                $url = ImageStyle::load('large')->buildUrl($media->field_image->entity->getFileUri());
-                $img->setAttribute('src', $url);
+                // replace path if media exist
+                if($media->field_image->entity)
+                {
+                    $url = ImageStyle::load('large')->buildUrl($media->field_image->entity->getFileUri());
+                    $img->setAttribute('src', $url);
+                }
+
             }
             $data = $doc->saveHTML();
         }
