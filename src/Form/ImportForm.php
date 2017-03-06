@@ -308,6 +308,8 @@ class ImportForm extends FormBase {
 
         $paragraphs = [];
         $created    = new \DateTime($data['Created']);
+        $publish    = new \DateTime($data['Publish Up']);
+        $down       = new \DateTime($data['Publish Down']);
 
 
         // find or create author
@@ -339,6 +341,8 @@ class ImportForm extends FormBase {
         ],
             [
                 'Test',
+                'Testovací',
+                'empty',
                 'empty category',
                 'Testing',
                 'Koncept'
@@ -346,7 +350,7 @@ class ImportForm extends FormBase {
         );
 
         // is article public?
-        $status = ("0" == $data['Trash'] && "1" == $data['Published'] ? 1 : 0);
+        $status = ("0" == trim($data['Trash']) && "1" == trim($data['Published']) ? 1 : 0);
 
 
         // setup basic values
@@ -364,8 +368,10 @@ class ImportForm extends FormBase {
             'field_seo_title'   => self::string($data['Title']),
 
             // times
-            "created"           => $created->getTimestamp(),
-            "changed"           => $created->getTimestamp(),
+            'created'           => $created->getTimestamp(),
+            'changed'           => $created->getTimestamp(),
+            'publish_on'        => $publish->getTimestamp(),
+            'publish_down'      => $down->getTimestamp(),
 
             // category
             'field_channel'     => [
@@ -412,7 +418,7 @@ class ImportForm extends FormBase {
             if($media)
             {
                 $values['field_teaser_media'] = [
-                    'target_id' => $media,
+                    'target_id' => $media->id(),
                 ];
             }
         }
@@ -422,19 +428,16 @@ class ImportForm extends FormBase {
             'pathauto'  => 0,
             'alias'     => '/' . $data['Alias']
         ];
-        //\Drupal::service('path.alias_storage')->save("/node/" . $node->id(), "/" . $data['Alias'], "cs");
 
 
+        // it's a new article
         if (false == $node)
         {
-            // it's a new article
             $node = Node::create($values);
         }
         else
         {
-            // it's exist
-
-            // update values
+            // update values for existing
             foreach($values as $key => $value)
             {
                 $node->{$key} = $value;
@@ -447,12 +450,14 @@ class ImportForm extends FormBase {
                 $p = Paragraph::load($i['target_id']);
                 if($p){ $p->delete(); }
             }
-
         }
 
 
         // main content
-        $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id);
+        if(!empty($data['Introtext']) && strlen($data['Introtext']) > 10)
+        {
+            $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id);
+        }
 
 
         // have a gallery?
@@ -465,7 +470,7 @@ class ImportForm extends FormBase {
         // have a video?
         if(!empty($data['Video']))
         {
-            //$paragraphs[] = self::videoJob($data['Video']);
+            //$paragraphs[] = self::videoJob($data['Video'], $user_id);
         }
 
 
@@ -556,7 +561,8 @@ class ImportForm extends FormBase {
             // find match in language keywords
             foreach($language_keys as $k)
             {
-                if (preg_match("/{$k}/i", $i))
+                $kLow = strtolower($k);
+                if (preg_match("/{$k}/i", $i) || preg_match("/{$kLow}/i", $i))
                 {
                     return true;
                 }
@@ -574,8 +580,32 @@ class ImportForm extends FormBase {
      */
     private static function paragraphJob($data, $user_id = 1)
     {
+        // inline images replacing
+        $doc = new \DOMDocument();
+        $doc->loadHTML($data);
+        $images = $doc->getElementsByTagName('img');
+
+        foreach ($images as $img)
+        {
+            // get original url
+            $url = $img->getAttribute('src');
+
+            // create media
+            $image_name = explode("/", $url);
+            $image_name = end($image_name);
+            $file = self::fileJob(str_replace("/" . $image_name, "", $url), $image_name);
+
+            // replace path
+            $url = str_replace($url, $file->getFileUri(), $url);
+            $img->setAttribute('src', $url);
+        }
+        $data = $doc->saveHTML();
+
+
+        // clear ugly code
         $value = str_replace("{{gallery}}", "", $data);
 
+        // save
         $paragraph = Paragraph::create([
             'id'          => NULL,
             'type'        => 'text',
@@ -593,25 +623,138 @@ class ImportForm extends FormBase {
 
 
     /**
-     * Create youtube embed via paragraphs, todo: regx
-     * @param $video string
+     * Shortcode content
+     * @param $string
+     * @param $tag
+     * @return null
      */
-    private static function videoJob($video)
+    private static function parseShortCode($string, $tag)
     {
-        // todo - create paragraph with video
+        $regex = '#{'.$tag.'}(.*?){/'.$tag.'}#';
+        preg_match($regex, $string, $matches);
+        return isset($matches[1]) ? $matches[1] : null;
     }
 
 
     /**
+     * Find just YoutubeId, can be in format: "https://www.youtube.com/watch?v=20RoyFU4mjg" or "20RoyFU4mjg", ...
+     * @param $string
+     * @return string
+     */
+    private static function parseYoutube($string)
+    {
+        $id = '';
+        return $id;
+    }
+
+
+    /**
+     * Todo!
+     * @param $video
+     * @return array
+     */
+    private static function videoJob($video, $user_id)
+    {
+        return null; // todo
+
+        $paragraphs = [];
+
+        // all is for now array - one format
+        $encoded = json_decode($video);
+        if(!isset($encoded[0]))
+        {
+            $encoded = [$video];
+        }
+
+        foreach($encoded as $k => $s)
+        {
+            $mp4        = self::parseShortCode($video, 'mp4');
+            $youtube    = self::parseShortCode($video, 'YouTube');
+
+            if($mp4)
+            {
+                $type   = 'video'; // todo!
+                $value  = 'media/k2/videos/' . $mp4 . '/';
+                $file   = self::fileJob($value, $mp4 . '.mp4');
+
+            }
+            if($youtube)
+            {
+                $type   = 'embed'; // todo!
+
+                preg_match("/^(?:http(?:s)?:\/\/)?(?:www\.)?(?:m\.)?(?:youtu\.be\/|youtube\.com\/(?:(?:watch)?\?(?:.*&)?v(?:i)?=|(?:embed|v|vi|user)\/))([^\?&\"'>]+)/", $youtube, $matches);
+                if(isset($matches[1]))
+                {
+                    $value = $matches[1]; // todo! test it
+                }
+            }
+
+            // todo: ti.me parsing?!
+
+            // polozky pole
+            $paragraph = Paragraph::create([
+                'id'          => NULL,
+                'type'        => $type,
+                'uid'         => $user_id,
+                'field_text'  => [
+                    'value'   => $value,
+                    'format' => 'source',
+                ],
+            ]);
+            $paragraph->isNew();
+            $paragraph->save();
+            $paragraphs[] = ['target_id' => $paragraph->id(), 'target_revision_id' => $paragraph->getRevisionId()];
+        }
+
+        // {mp4}29660{/mp4}
+        // ["{YouTube}a0a6Y9JvPqo{\/YouTube}"]
+        // ["{YouTube}http:\/\/ti.me\/1NxWIZZ{\/YouTube}","{YouTube}http:\/\/ti.me\/1Pk2QdH{\/YouTube}"]
+        // ["{YouTube}https:\/\/www.youtube.com\/watch?v=20RoyFU4mjg{\/YouTube}"]
+        //
+        return $paragraphs;
+    }
+
+
+    /**
+     * @param $path string
+     * @param $file string
+     * @return \Drupal\file\FileInterface|false|null
+     */
+    private static function fileJob($path, $file)
+    {
+        $path = \Drupal::root() . "/sites/default/files/joomla/{$path}";
+        if(file_exists($path))
+        {
+            $file_data  = file_get_contents($path);
+            $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . $file, FILE_EXISTS_REPLACE);
+
+            if($file)
+            {
+                return $file;
+            }
+            else
+            {
+                drupal_set_message('Problem with file_save_data, file: "' . $path . '"', 'warning');
+            }
+        }
+        else
+        {
+            drupal_set_message('File: "' . $path . '" not exist!', 'warning');
+        }
+
+        return null;
+    }
+
+    /**
      * Create file from existing source and media picture or use existing by name
      * @param $path
-     * @param string $description
-     * @param string $credits
+     * @param $description string
+     * @param $credits string
      * @param $user int
      * @param int $import_id int
      * @return int|mixed|null|string
      */
-    private static function mediaJob($path, $description = "", $credits = "", $user, $import_id = 1)
+    private static function mediaJob($path, $description = "", $credits = "", $user = 1, $import_id = 1)
     {
         $image_name = explode("/", $path);
         $image_name = end($image_name);
@@ -635,38 +778,24 @@ class ImportForm extends FormBase {
         }
 
         // create new
-        $path = \Drupal::root() . "/sites/default/files/joomla/{$path}";
-        if(file_exists($path))
+        $file = self::fileJob($path, $image_name);
+        if($file)
         {
-            $file_data  = file_get_contents($path);
-            $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . $image_name, FILE_EXISTS_REPLACE);
-
-            if($file)
-            {
-                $image_media = Media::create([
-                    'bundle'            => 'image',
-                    'uid'               => $user,
-                    'status'            => Media::PUBLISHED,
-                    'field_joomla_id'   => substr($import_id, 0, 7),
-                    'field_description' => $description,
-                    'field_source'      => $credits,
-                    'field_image'       => [
-                        'target_id' => $file->id(),
-                        //'alt'       => t('@alt', ['@alt' => substr($description, 0, 155)]),
-                    ],
-                ]);
-                $image_media->setQueuedThumbnailDownload();
-                $image_media->save();
-                return $image_media->id();
-            }
-            else
-            {
-                drupal_set_message('Problem with file_save_data, file: "' . $path . '"', 'warning');
-            }
-        }
-        else
-        {
-            drupal_set_message('File: "' . $path . '" not exist!', 'warning');
+            $image_media = Media::create([
+                'bundle'            => 'image',
+                'uid'               => $user,
+                'status'            => Media::PUBLISHED,
+                'field_joomla_id'   => substr($import_id, 0, 7),
+                'field_description' => $description,
+                'field_source'      => $credits,
+                'field_image'       => [
+                    'target_id' => $file->id(),
+                    //'alt'       => t('@alt', ['@alt' => substr($description, 0, 155)]),
+                ],
+            ]);
+            $image_media->setQueuedThumbnailDownload();
+            $image_media->save();
+            return $image_media;
         }
 
         return null;
@@ -717,7 +846,7 @@ class ImportForm extends FormBase {
             if($media)
             {
                 $images[] = [ // $image->ordering
-                    'target_id' => $media
+                    'target_id' => $media->id()
                 ];
             }
 
@@ -857,6 +986,9 @@ class ImportForm extends FormBase {
             else {
                 drupal_set_message(\Drupal::translation()->translate('The csv data parser was synchronized successfully.'));
             }
+
+            // call cron for node scheduler
+            \Drupal::service('cron')->run();
         }
         else {
             // An error occurred.
