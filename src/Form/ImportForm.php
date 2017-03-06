@@ -467,7 +467,7 @@ class ImportForm extends FormBase {
                 }
 
                 // store
-                $tags[] = ['target_id' => $term_id];
+                $tags['target_id'] = $term_id;
             }
 
             // return var
