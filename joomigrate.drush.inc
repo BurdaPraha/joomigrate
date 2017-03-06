@@ -123,7 +123,7 @@ function drush_joomigrate_post_delete_tags()
 function drush_joomigrate_post_delete_images()
 {
     $siz = \Drupal::entityQuery('media')
-        ->condition('vid', 'image')
+        ->condition('bundle', 'image')
         ->exists('field_joomla_id')
         ->condition('field_joomla_id', 0, '>')
         ->count()
