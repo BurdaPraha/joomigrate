@@ -355,6 +355,10 @@ class ImportForm extends FormBase {
         $status = ('0' == trim($data['Trash']) && '1' == trim($data['Published']) ? 1 : 0);
 
 
+        // video or text
+        $article_type = (!empty($data['Category Name']) && 'Video' == $data['Category Name'] ? 4 : 3);
+
+
         // setup basic values
         $values = [
             'field_joomla_id'   => $data['ID'],
@@ -382,7 +386,7 @@ class ImportForm extends FormBase {
 
             // set as text article
             'field_article_type'  => [
-                'target_id' => 3
+                'target_id' => $article_type
             ],
 
             // author
