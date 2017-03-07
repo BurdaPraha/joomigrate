@@ -515,14 +515,15 @@ class ImportForm extends FormBase {
         // main content
         if(!empty($data['Introtext']) && strlen(strip_tags($data['Introtext'])) > 10)
         {
-            $paragraphs[]   = self::paragraphJob($data['Introtext'], $user_id, $data['ID']);
+            $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id, $data['ID']);
         }
 
 
         // have a gallery?
         if(!empty($data['Images for the Gallery']) && strlen($data['Images for the Gallery']) > 20)
         {
-            $paragraphs[] = self::mediaGalleryJob($data['Title'], $data['Images for the Gallery'], $data['Alias'], $data['ID'], $user_id);
+            $gallery = self::mediaGalleryJob($data['Title'], $data['Images for the Gallery'], $data['Alias'], $data['ID'], $user_id);
+            $paragraphs[] = $gallery;
 
             // change to gallery type
             $node->set('field_article_type', ['target_id' => 5]);
@@ -894,49 +895,54 @@ class ImportForm extends FormBase {
         $gallery  = json_decode($string);
         $images   = [];
 
-        foreach($gallery as $key => $image)
+        if(count($gallery) > 0)
         {
-            $media = self::mediaJob($image->filename, (!empty($image->description) ? $image->description : $image->title), '', $user_id, $image->dirId);
-            if($media)
+            foreach($gallery as $key => $image)
             {
-                $images[] = [ // $image->ordering
-                    'target_id' => $media->id()
-                ];
+                $media = self::mediaJob($image->filename, (!empty($image->description) ? $image->description : $image->title), '', $user_id, $image->dirId);
+                if($media)
+                {
+                    $images[] = [ // $image->ordering
+                        'target_id' => $media->id()
+                    ];
+                }
+
             }
 
+            // create gallery
+            $gallery_media = Media::create([
+                'bundle'              => 'gallery',
+                'uid'                 => $user_id,
+                'status'              => Media::PUBLISHED,
+                'name'                => $name,
+                'field_media_images'  => $images,
+                'field_gallery_joomla_id' => $article_id,
+                'path' => [
+                    'pathauto'  => 0,
+                    'alias'     => '/galerie/' . $alias
+                ]
+            ]);
+
+
+            $gallery_media->setQueuedThumbnailDownload();
+            $gallery_media->save();
+
+            // create gallery paragraph
+            $gallery_paragraph = Paragraph::create([
+                'type'        => 'gallery',
+                'uid'         => $user_id,
+                'field_media' => [
+                    'target_id' => $gallery_media->id()
+                ]
+            ]);
+            $gallery_paragraph->isNew();
+            $gallery_paragraph->save();
+
+            // todo: gallery path auto alias
+            return ['target_id' => $gallery_paragraph->id(), 'target_revision_id' => $gallery_paragraph->getRevisionId()];
         }
 
-        // create gallery
-        $gallery_media = Media::create([
-            'bundle'              => 'gallery',
-            'uid'                 => $user_id,
-            'status'              => Media::PUBLISHED,
-            'name'                => $name,
-            'field_media_images'  => $images,
-            'field_gallery_joomla_id' => $article_id,
-            'path' => [
-                'pathauto'  => 0,
-                'alias'     => '/galerie/' . $alias
-            ]
-        ]);
-
-
-        $gallery_media->setQueuedThumbnailDownload();
-        $gallery_media->save();
-
-        // create gallery paragraph
-        $gallery_paragraph = Paragraph::create([
-            'type'        => 'gallery',
-            'uid'         => $user_id,
-            'field_media' => [
-                'target_id' => $gallery_media->id()
-            ]
-        ]);
-        $gallery_paragraph->isNew();
-        $gallery_paragraph->save();
-
-        // todo: gallery path auto alias
-        return ['target_id' => $gallery_paragraph->id(), 'target_revision_id' => $gallery_paragraph->getRevisionId()];
+        return null;
     }
 
 
