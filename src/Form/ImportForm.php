@@ -776,10 +776,10 @@ class ImportForm extends FormBase {
      */
     private static function fileJob($path, $file)
     {
-        $path = \Drupal::root() . "/sites/default/files/joomla/{$path}";
-        if(file_exists($path))
+        $full_path = \Drupal::root() . "/sites/default/files/joomla/{$path}";
+        if(file_exists($full_path))
         {
-            $file_data  = file_get_contents($path);
+            $file_data  = file_get_contents($full_path);
             $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . $file, FILE_EXISTS_REPLACE);
 
             if($file)
@@ -788,12 +788,12 @@ class ImportForm extends FormBase {
             }
             else
             {
-                drupal_set_message('Problem with file_save_data, file: "' . $path . '"', 'warning');
+                drupal_set_message('Problem with file_save_data, file: "' . $full_path . '"', 'warning');
             }
         }
         else
         {
-            drupal_set_message('File: "' . $path . '" not exist!', 'warning');
+            drupal_set_message('File: "' . $full_path . '" not exist!', 'warning');
         }
 
         return null;

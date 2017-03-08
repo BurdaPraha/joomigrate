@@ -23,3 +23,6 @@ For develop and testing useful functions which can delete only imported content 
 - [ ] import from Joomla 3.x K2
 - [ ] import from Drupal 7
 - [ ] import from WordPress
+
+## Tools
+- [Joomla redirects export for .htaccess](/tools/joomla_redirects.php), you can use this file manually for your redirects export
