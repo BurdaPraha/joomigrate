@@ -770,13 +770,34 @@ class ImportForm extends FormBase {
 
 
     /**
+     * @param $url
+     * @return bool
+     */
+    public function is_absolute($url)
+    {
+        $pattern = "/^(?:ftp|https?|feed):\/\/(?:(?:(?:[\w\.\-\+!$&'\(\)*\+,;=]|%[0-9a-f]{2})+:)*
+    (?:[\w\.\-\+%!$&'\(\)*\+,;=]|%[0-9a-f]{2})+@)?(?:
+    (?:[a-z0-9\-\.]|%[0-9a-f]{2})+|(?:\[(?:[0-9a-f]{0,4}:)*(?:[0-9a-f]{0,4})\]))(?::[0-9]+)?(?:[\/|\?]
+    (?:[\w#!:\.\?\+=&@$'~*,;\/\(\)\[\]\-]|%[0-9a-f]{2})*)?$/xi";
+
+        return (bool) preg_match($pattern, $url);
+    }
+    
+
+    /**
      * @param $path string
      * @param $file string
      * @return \Drupal\file\FileInterface|false|null
      */
     private static function fileJob($path, $file)
     {
-        $full_path = \Drupal::root() . "/sites/default/files/joomla/{$path}";
+        $is_absolute = self::is_absolute($path);
+
+        if(!$is_absolute)
+        {
+            $full_path = \Drupal::root() . "/sites/default/files/joomla/{$path}";
+        }
+
         if(file_exists($full_path))
         {
             $file_data  = file_get_contents($full_path);
