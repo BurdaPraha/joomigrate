@@ -294,269 +294,278 @@ class ImportForm extends FormBase {
      */
     public static function processBatch($data, &$context)
     {
-        // get db instance
-        $db = \Drupal::database();
+        // can be saved or skipp it?
+        if('0' == $data['Trash'])
+        {
+            // get db instance
+            $db = \Drupal::database();
 
-        // load node by joomla id
-        $nodes = \Drupal::entityTypeManager()
-            ->getStorage('node')
-            ->loadByProperties(['field_joomla_id' => $data['ID']]);
-
-
-        // get one entity from array
-        $node = end($nodes);
-
-
-        $paragraphs = [];
-        $created    = new \DateTime($data['Created']);
-        $publish    = new \DateTime($data['Publish Up']);
-        $down       = new \DateTime($data['Publish Down']);
+            // load node by joomla id
+            $nodes = \Drupal::entityTypeManager()
+                ->getStorage('node')
+                ->loadByProperties(['field_joomla_id' => $data['ID']]);
 
 
-        // find or create author
-        $user_id    = self::userJob($data['User ID']);
+            // get one entity from array
+            $node = end($nodes);
 
 
-        // Promotion - todo: move parameters to form input / database, out of the script
-        $promotion = self::checkPromotionArticle([
-            $data['Title'],
-            $data['Category Name'],
-            $data['Meta Description'],
-            $data['Perex'],
-        ],
-            [
-                'Promotion',
-                'Komerční',
-                'Reklama',
-                'Advertisment'
-            ]
-        );
+            $paragraphs = [];
+            $created    = new \DateTime($data['Created']);
+            $publish    = new \DateTime($data['Publish Up']);
+            $down       = new \DateTime($data['Publish Down']);
 
 
-        // Find ugly articles - todo: move parameters to form input / database, out of the script
-        $draft = self::checkDraftArticle([
-            $data['Title'],
-            $data['Category Name'],
-            $data['Meta Description'],
-            $data['Perex'],
-        ],
-            [
-                'Test',
-                'Testovací',
-                'empty',
-                'empty category',
-                'Testing',
-                'Koncept'
-            ]
-        );
+            // find or create author
+            $user_id    = self::userJob($data['User ID']);
 
 
-        // is article public?
-        $status = ('0' == trim($data['Trash']) && '1' == trim($data['Published']) ? 1 : 0);
-
-
-        // video or text
-        $article_type = (!empty($data['Category Name']) && 'Video' == $data['Category Name'] ? 4 : 3);
-
-
-        // setup basic values
-        $values = [
-            'field_joomla_id'   => $data['ID'],
-            'type'              => 'article',
-            'langcode'          => 'cs',
-            "promote"           => 1,
-
-            // visible?
-            "status"            => $status,
-
-            // titles
-            'title'             => self::string($data['Title']),
-            'field_seo_title'   => self::string($data['Title']),
-
-            // times
-            'created'           => $created->getTimestamp(),
-            'changed'           => $created->getTimestamp(),
-            'publish_on'        => $status ? $publish->getTimestamp() : null,
-            'publish_down'      => $down->getTimestamp(),
-
-            // category
-            'field_channel'     => [
-                'target_id' => self::channelJob($data['Category Name'])
+            // Promotion - todo: move parameters to form input / database, out of the script
+            $promotion = self::checkPromotionArticle([
+                $data['Title'],
+                $data['Category Name'],
+                $data['Meta Description'],
+                $data['Perex'],
             ],
+                [
+                    'Promotion',
+                    'Komerční',
+                    'Reklama',
+                    'Advertisment'
+                ]
+            );
 
-            // set as text article
-            'field_article_type'  => [
-                'target_id' => $article_type
+
+            // Find ugly articles - todo: move parameters to form input / database, out of the script
+            $draft = self::checkDraftArticle([
+                $data['Title'],
+                $data['Category Name'],
+                $data['Meta Description'],
+                $data['Perex'],
             ],
-
-            // author
-            "uid"                 => $user_id,
-
-            // meta tags
-            "description"         => $data['Meta Description'],
-
-            // perex
-            'field_teaser_text'   => strip_tags($data['Perex']),
-
-            // read counter
-            'field_read_count'    => strlen($data['Hits']) > 0 ? trim((int) $data['Hits']) : 0,
-        ];
+                [
+                    'Test',
+                    'Testovací',
+                    'empty',
+                    'empty category',
+                    'Testing',
+                    'Koncept'
+                ]
+            );
 
 
-        if(true == $promotion)
-        {
-            $variables['field_channel'] = [
-                'target_id' => self::channelJob('PR článek')
+            // is article public?
+            $status = ('0' == trim($data['Trash']) && '1' == trim($data['Published']) ? 1 : 0);
+
+
+            // video or text
+            $article_type = (!empty($data['Category Name']) && 'Video' == $data['Category Name'] ? 4 : 3);
+
+
+            // setup basic values
+            $values = [
+                'field_joomla_id'   => $data['ID'],
+                'type'              => 'article',
+                'langcode'          => 'cs',
+                "promote"           => 1,
+
+                // visible?
+                "status"            => $status,
+
+                // titles
+                'title'             => self::string($data['Title']),
+                'field_seo_title'   => self::string($data['Title']),
+
+                // times
+                'created'           => $created->getTimestamp(),
+                'changed'           => $created->getTimestamp(),
+                'publish_on'        => $status ? $publish->getTimestamp() : null,
+                'publish_down'      => $down->getTimestamp(),
+
+                // category
+                'field_channel'     => [
+                    'target_id' => self::channelJob($data['Category Name'])
+                ],
+
+                // set as text article
+                'field_article_type'  => [
+                    'target_id' => $article_type
+                ],
+
+                // author
+                "uid"                 => $user_id,
+
+                // meta tags
+                "description"         => $data['Meta Description'],
+
+                // perex
+                'field_teaser_text'   => strip_tags($data['Perex']),
+
+                // read counter
+                'field_read_count'    => strlen($data['Hits']) > 0 ? trim((int) $data['Hits']) : 0,
             ];
-        }
 
 
-        if(true == $draft)
-        {
-            $variables['status'] = 0;
-            $variables['field_channel'] = [
-                'target_id' => self::channelJob('--- Check this! ---')
-            ];
-        }
-
-
-        // Teaser media
-        if(!empty($data['Teaser image']) && strlen($data['Teaser image']) > 10)
-        {
-            $media = self::mediaJob($data['Teaser image'], $data['Image caption'], $data['Image credits'], $data['User ID'], $data['ID']);
-            if($media)
+            if(true == $promotion)
             {
-                $values['field_teaser_media'] = [
-                    'target_id' => $media->id(),
+                $variables['field_channel'] = [
+                    'target_id' => self::channelJob('PR článek')
                 ];
             }
-        }
 
-        // tags
-        if(!empty($data['Meta Keywords']) && strlen($data['Meta Keywords']) > 5)
-        {
-            $tags       = [];
-            $keywords   = explode(',', $data['Meta Keywords']);
 
-            foreach($keywords as $k => $tag)
+            if(true == $draft)
             {
-                // tag name
-                $name = trim($tag);
-
-                // check existing id
-                $tagExist = \Drupal::entityQuery('taxonomy_term')
-                    ->condition('vid', 'tags')
-                    ->condition('name', $name, 'CONTAINS')
-                    ->execute();
-
-                if($tagExist)
-                {
-                    // use existing
-                    $term_id = end($tagExist);
-                }
-                else
-                {
-                    // not exist
-                    $term = Term::create([
-                        'vid'                   => 'tags',
-                        'name'                  => $name,
-                        'field_tag_joomla_id'   => $data['ID']
-                    ]);
-                    $term->save();
-                    $term_id = $term->id();
-                }
-
-                // store
-                $tags['target_id'] = $term_id;
+                $variables['status'] = 0;
+                $variables['field_channel'] = [
+                    'target_id' => self::channelJob('--- Check this! ---')
+                ];
             }
 
-            // return var
-            if(count($tags) > 1)
+
+            // Teaser media
+            if(!empty($data['Teaser image']) && strlen($data['Teaser image']) > 10)
             {
-                $variables['field_tags'] = $tags;
+                $media = self::mediaJob($data['Teaser image'], $data['Image caption'], $data['Image credits'], $data['User ID'], $data['ID']);
+                if($media)
+                {
+                    $values['field_teaser_media'] = [
+                        'target_id' => $media->id(),
+                    ];
+                }
             }
-        }
+
+            // tags
+            if(!empty($data['Meta Keywords']) && strlen($data['Meta Keywords']) > 5)
+            {
+                $tags       = [];
+                $keywords   = explode(',', $data['Meta Keywords']);
+
+                foreach($keywords as $k => $tag)
+                {
+                    // tag name
+                    $name = trim($tag);
+
+                    // check existing id
+                    $tagExist = \Drupal::entityQuery('taxonomy_term')
+                        ->condition('vid', 'tags')
+                        ->condition('name', $name, 'CONTAINS')
+                        ->execute();
+
+                    if($tagExist)
+                    {
+                        // use existing
+                        $term_id = end($tagExist);
+                    }
+                    else
+                    {
+                        // not exist
+                        $term = Term::create([
+                            'vid'                   => 'tags',
+                            'name'                  => $name,
+                            'field_tag_joomla_id'   => $data['ID']
+                        ]);
+                        $term->save();
+                        $term_id = $term->id();
+                    }
+
+                    // store
+                    $tags['target_id'] = $term_id;
+                }
+
+                // return var
+                if(count($tags) > 1)
+                {
+                    $variables['field_tags'] = $tags;
+                }
+            }
 
 
-        // it's a new article
-        if (false == $node)
-        {
-            $node = Node::create($values);
+            // it's a new article
+            if (false == $node)
+            {
+                $node = Node::create($values);
+            }
+            else
+            {
+                // update values for existing
+                foreach($values as $key => $value)
+                {
+                    $node->{$key} = $value;
+                }
+
+                // remove all paragraphs for easy update
+                $paragraphs = $node->get('field_paragraphs')->getValue();
+                foreach ($paragraphs as $n => $i)
+                {
+                    $p = Paragraph::load($i['target_id']);
+                    if($p){ $p->delete(); }
+                }
+            }
+
+
+            // use existing alias
+            if(!empty($data['Alias']) && strlen($data['Alias']) > 5)
+            {
+                $path = \Drupal::service('path.alias_storage')->save('/node/' . $node->id(), '/' . $data['Alias'], 'cs');
+                $values['path'] = [
+                    'pathauto'  => 0,
+                    'alias'     => $path['alias']
+                ];
+            }
+
+
+            // main content
+            if(!empty($data['Introtext']) && strlen(strip_tags($data['Introtext'])) > 10)
+            {
+                $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id, $data['ID']);
+            }
+
+
+            // have a gallery?
+            if(!empty($data['Images for the Gallery']) && strlen($data['Images for the Gallery']) > 20)
+            {
+                $gallery = self::mediaGalleryJob($data['Title'], $data['Images for the Gallery'], $data['Alias'], $data['ID'], $user_id);
+                $paragraphs[] = $gallery;
+
+                // change to gallery type
+                $node->set('field_article_type', ['target_id' => 5]);
+            }
+
+
+            // have a video?
+            if(!empty($data['Video']))
+            {
+                // all is for now array - one format
+                $encoded = json_decode($data['Video']);
+                if(!isset($encoded[0]))
+                {
+                    $encoded = [$data['Video']];
+                }
+
+                $videos = self::videoJob($encoded, $user_id);
+                $paragraphs[] = $videos;
+
+                if(count($videos) > 0)
+                {
+                    $node->set('field_article_type', ['target_id' => 5]);
+                }
+            }
+
+
+            // save paragraphs
+            $node->set('field_paragraphs', $paragraphs);
+
+
+            // save updated node
+            $node->save();
+
         }
         else
         {
-            // update values for existing
-            foreach($values as $key => $value)
-            {
-                $node->{$key} = $value;
-            }
-
-            // remove all paragraphs for easy update
-            $paragraphs = $node->get('field_paragraphs')->getValue();
-            foreach ($paragraphs as $n => $i)
-            {
-                $p = Paragraph::load($i['target_id']);
-                if($p){ $p->delete(); }
-            }
+            // send messsage about skipped article
+            drupal_set_message($data['ID'] . ' - skipped because is in trash');
         }
-
-
-        // use existing alias
-        if(!empty($data['Alias']) && strlen($data['Alias']) > 5)
-        {
-            $path = \Drupal::service('path.alias_storage')->save('/node/' . $node->id(), '/' . $data['Alias'], 'cs');
-            $values['path'] = [
-                'pathauto'  => 0,
-                'alias'     => $path['alias']
-            ];
-        }
-
-
-        // main content
-        if(!empty($data['Introtext']) && strlen(strip_tags($data['Introtext'])) > 10)
-        {
-            $paragraphs[] = self::paragraphJob($data['Introtext'], $user_id, $data['ID']);
-        }
-
-
-        // have a gallery?
-        if(!empty($data['Images for the Gallery']) && strlen($data['Images for the Gallery']) > 20)
-        {
-            $gallery = self::mediaGalleryJob($data['Title'], $data['Images for the Gallery'], $data['Alias'], $data['ID'], $user_id);
-            $paragraphs[] = $gallery;
-
-            // change to gallery type
-            $node->set('field_article_type', ['target_id' => 5]);
-        }
-
-
-        // have a video?
-        if(!empty($data['Video']))
-        {
-            // all is for now array - one format
-            $encoded = json_decode($data['Video']);
-            if(!isset($encoded[0]))
-            {
-                $encoded = [$data['Video']];
-            }
-
-            $videos = self::videoJob($encoded, $user_id);
-            $paragraphs[] = $videos;
-
-            if(count($videos) > 0)
-            {
-                $node->set('field_article_type', ['target_id' => 5]);
-            }
-        }
-
-
-        // save paragraphs
-        $node->set('field_paragraphs', $paragraphs);
-
-
-        // save updated node
-        $node->save();
-
 
         // validate process errors
         if (!isset($context['results']['errors']))
@@ -701,7 +710,7 @@ class ImportForm extends FormBase {
     private static function possibleToReplace($string)
     {
         $words = [
-          'adform.com'
+            'adform.com'
         ];
 
         return array_keys($words, $string);
@@ -817,13 +826,16 @@ class ImportForm extends FormBase {
 
 
     /**
-     * @param $path string
-     * @param $file string
-     * @return \Drupal\file\FileInterface|false|null
+     * @param $path - full path of image
+     * @param $file_name - original name of image
+     * @param null $entity_id int - just for loging
+     * @return null
      */
-    private static function fileJob($path, $file)
+    private static function fileJob($path, $file_name, $entity_id = null)
     {
-        $is_absolute = self::is_absolute($path);
+        $is_absolute    = self::is_absolute($path);
+        $entity_id      = null == $entity_id || 1 == $entity_id ? null : $entity_id;
+        $prefix_id      = $entity_id ? 'entity_id: ' . $entity_id . ' - ' : '';
 
         if(!$is_absolute)
         {
@@ -840,7 +852,7 @@ class ImportForm extends FormBase {
         if(file_exists($full_path))
         {
             $file_data  = file_get_contents($full_path);
-            $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . $file, FILE_EXISTS_REPLACE);
+            $file       = file_save_data($file_data, 'public://'.date("Y-m").'/' . $file_name, FILE_EXISTS_REPLACE);
 
             if($file)
             {
@@ -848,12 +860,12 @@ class ImportForm extends FormBase {
             }
             else
             {
-                drupal_set_message('Problem with file_save_data, file: "' . $full_path . '"', 'warning');
+                drupal_set_message($prefix_id . 'Problem with file_save_data, file: "' . $full_path . '"', 'warning');
             }
         }
         else
         {
-            drupal_set_message('File: "' . $full_path . '" not exist!', 'warning');
+            drupal_set_message($prefix_id . 'File: "' . $full_path . '" not exist!', 'warning');
         }
 
         return null;
@@ -893,7 +905,7 @@ class ImportForm extends FormBase {
         }
 
         // create new
-        $file = self::fileJob($path, $image_name);
+        $file = self::fileJob($path, $image_name, $import_id);
         if($file)
         {
             $image_media = Media::create([
@@ -1108,7 +1120,7 @@ class ImportForm extends FormBase {
             }
 
             // call cron for node scheduler
-            \Drupal::service('cron')->run();
+            //\Drupal::service('cron')->run(); // todo: find way how it can be run without Internal server error
         }
         else {
             // An error occurred.
