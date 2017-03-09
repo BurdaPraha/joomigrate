@@ -581,6 +581,13 @@ class ImportForm extends FormBase {
     }
 
 
+    private static function hackStatsModule()
+    {
+        db_truncate('search_index');
+        db_truncate('search_dataset');
+        db_truncate('search_total');
+    }
+
     /**
      * Check if article as promoted or not
      * @param array $article_data columns which we will check to contain language_keys
@@ -648,19 +655,21 @@ class ImportForm extends FormBase {
             {
                 // get original url
                 $url = $img->getAttribute('src');
+                $alt = $img->getAttribute('alt') ? $img->getAttribute('alt') : '';
 
                 // create media
                 // todo !
-                $media = self::mediaJob($url, "", "", $user_id, $article_id);
+                $media = self::mediaJob($url, $alt, "", $user_id, $article_id);
 
                 // replace path if media exist
                 if($media->field_image->entity)
                 {
-                    $url = ImageStyle::load('large')->buildUrl($media->field_image->entity->getFileUri());
-                    $img->setAttribute('src', $url);
+                    $src = ImageStyle::load('large')->buildUrl($media->field_image->entity->getFileUri());
+                    $img->setAttribute('src', $src);
                 }
 
             }
+
             $data = $doc->saveHTML();
         }
 
@@ -882,8 +891,9 @@ class ImportForm extends FormBase {
      */
     private static function mediaJob($path, $description = "", $credits = "", $user = 1, $import_id = 1)
     {
-        $image_name = explode("/", $path);
-        $image_name = end($image_name);
+        $image_name     = explode("/", $path);
+        $image_name     = end($image_name);
+        $description    = !empty($description) && null !== $description ? $description : '';
 
 
         // check if not already exist
