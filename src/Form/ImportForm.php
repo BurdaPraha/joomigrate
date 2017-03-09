@@ -376,7 +376,7 @@ class ImportForm extends FormBase {
             // times
             'created'           => $created->getTimestamp(),
             'changed'           => $created->getTimestamp(),
-            'publish_on'        => $publish->getTimestamp(),
+            'publish_on'        => $status ? $publish->getTimestamp() : null,
             'publish_down'      => $down->getTimestamp(),
 
             // category
@@ -533,7 +533,14 @@ class ImportForm extends FormBase {
         // have a video?
         if(!empty($data['Video']))
         {
-            $videos = self::videoJob($data['Video'], $user_id);
+            // all is for now array - one format
+            $encoded = json_decode($data['Video']);
+            if(!isset($encoded[0]))
+            {
+                $encoded = [$data['Video']];
+            }
+
+            $videos = self::videoJob($encoded, $user_id);
             $paragraphs[] = $videos;
 
             if(count($videos) > 0)
@@ -616,14 +623,12 @@ class ImportForm extends FormBase {
 
     /**
      * @param $data
-     * @param int $user_id
-     * @return array
+     * @param $user_id
+     * @param $article_id
+     * @return string
      */
-    private static function paragraphJob($data, $user_id = 1, $article_id)
+    private static function replaceInlineMedia($data, $user_id, $article_id)
     {
-        //{{contest}}18{{/contest}} Otestujte revoluční novinku na omlazení pleti!
-
-        // inline images replacing
         $doc = new \DOMDocument();
         $doc->loadHTML(mb_convert_encoding($data, 'HTML-ENTITIES', 'UTF-8'));
         $images = $doc->getElementsByTagName('img');
@@ -636,6 +641,7 @@ class ImportForm extends FormBase {
                 $url = $img->getAttribute('src');
 
                 // create media
+                // todo !
                 $media = self::mediaJob($url, "", "", $user_id, $article_id);
 
                 // replace path if media exist
@@ -648,6 +654,25 @@ class ImportForm extends FormBase {
             }
             $data = $doc->saveHTML();
         }
+
+        return $data;
+    }
+
+
+    /**
+     * @param $data
+     * @param int $user_id
+     * @return array
+     */
+    private static function paragraphJob($data, $user_id = 1, $article_id)
+    {
+        //{{contest}}18{{/contest}} Otestujte revoluční novinku na omlazení pleti!
+
+
+        // http://marianne-thunder.dev:8888/clanek/5-vanocnich-pisnicek-se-kterymi-si-vykouzlite-ty-nejkrasnejsi-svatky
+
+        // inline images replacing
+        $data = self::replaceInlineMedia($data, $user_id = 1, $article_id);
 
         // clear ugly code
         $value = str_replace("{{gallery}}", "", $data);
@@ -666,6 +691,20 @@ class ImportForm extends FormBase {
         $paragraph->save();
 
         return ['target_id' => $paragraph->id(), 'target_revision_id' => $paragraph->getRevisionId()];
+    }
+
+
+    /**
+     * @param $string
+     * @return bool
+     */
+    private static function possibleToReplace($string)
+    {
+        $words = [
+          'adform.com'
+        ];
+
+        return array_keys($words, $string);
     }
 
 
@@ -690,6 +729,10 @@ class ImportForm extends FormBase {
      */
     private static function parseYoutube($string)
     {
+        // ["{YouTube}a0a6Y9JvPqo{\/YouTube}"]
+        // ["{YouTube}http:\/\/ti.me\/1NxWIZZ{\/YouTube}","{YouTube}http:\/\/ti.me\/1Pk2QdH{\/YouTube}"]
+        // ["{YouTube}https:\/\/www.youtube.com\/watch?v=20RoyFU4mjg{\/YouTube}"]
+
         preg_match("/^(?:http(?:s)?:\/\/)?(?:www\.)?(?:m\.)?(?:youtu\.be\/|youtube\.com\/(?:(?:watch)?\?(?:.*&)?v(?:i)?=|(?:embed|v|vi|user)\/))([^\?&\"'>]+)/", $string, $matches);
         if(isset($matches[1]))
         {
@@ -700,9 +743,8 @@ class ImportForm extends FormBase {
 
 
     /**
-     * Todo: youtube
-     * @param $video
-     * @param $user_id
+     * @param $video array
+     * @param $user_id int
      * @return array
      */
     private static function videoJob($video, $user_id)
@@ -710,24 +752,14 @@ class ImportForm extends FormBase {
         $paragraphs = [];
         $video_paragraph = null;
 
-        // all is for now array - one format
-        $encoded = json_decode($video);
-        if(!isset($encoded[0]))
+        foreach($video as $k => $s)
         {
-            $encoded = [$video];
-        }
-
-        foreach($encoded as $k => $s)
-        {
-            // {mp4}29660{/mp4}
             $mp4        = self::parseShortCode($video, 'mp4');
             $youtube    = self::parseShortCode($video, 'YouTube');
-            // ["{YouTube}a0a6Y9JvPqo{\/YouTube}"]
-            // ["{YouTube}http:\/\/ti.me\/1NxWIZZ{\/YouTube}","{YouTube}http:\/\/ti.me\/1Pk2QdH{\/YouTube}"]
-            // ["{YouTube}https:\/\/www.youtube.com\/watch?v=20RoyFU4mjg{\/YouTube}"]
 
             if($mp4)
             {
+                // {mp4}29660{/mp4}
                 $file   = self::fileJob('media/k2/videos/' . $mp4 . '/', $mp4 . '.mp4');
                 $video_paragraph = Paragraph::create([
                     'id'          => NULL,
@@ -782,7 +814,7 @@ class ImportForm extends FormBase {
 
         return (bool) preg_match($pattern, $url);
     }
-    
+
 
     /**
      * @param $path string
@@ -796,6 +828,13 @@ class ImportForm extends FormBase {
         if(!$is_absolute)
         {
             $full_path = \Drupal::root() . "/sites/default/files/joomla/{$path}";
+        }
+
+        // png quick fix
+        $full_path_png = str_replace(".jpg", ".png", $full_path);
+        if(file_exists($full_path_png))
+        {
+            $full_path = $full_path_png;
         }
 
         if(file_exists($full_path))
