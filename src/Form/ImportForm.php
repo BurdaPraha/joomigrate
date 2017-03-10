@@ -845,7 +845,7 @@ class ImportForm extends FormBase {
         $is_absolute    = self::is_absolute($path);
         $entity_id      = null == $entity_id || 1 == $entity_id ? null : $entity_id;
         $prefix_id      = $entity_id ? 'entity_id: ' . $entity_id . ' - ' : '';
-        $normal_name    = strlen($file_name) >= 150 ? md5($file_name) . '.' . pathinfo($file_name, PATHINFO_EXTENSION) : $file_name;
+        $normal_name    = strlen($file_name) >= 50 ? md5($file_name) . '.' . pathinfo($file_name, PATHINFO_EXTENSION) : $file_name;
 
         if(!$is_absolute)
         {
