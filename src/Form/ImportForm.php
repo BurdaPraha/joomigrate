@@ -583,7 +583,7 @@ class ImportForm extends FormBase {
         else
         {
             // you can decide to create errors here comments codes below
-            $message = t('Data with @title was not synchronized', ['@title' => $data['title']]);
+            $message = t('Data with @id was not synchronized', ['@id' => $data['ID']]);
             $context['results']['errors'][] = $message;
         }
     }
@@ -831,7 +831,7 @@ class ImportForm extends FormBase {
      * @param $url
      * @return bool
      */
-    public function is_absolute($url)
+    public static function is_absolute($url)
     {
         $pattern = "/^(?:ftp|https?|feed):\/\/(?:(?:(?:[\w\.\-\+!$&'\(\)*\+,;=]|%[0-9a-f]{2})+:)*
     (?:[\w\.\-\+%!$&'\(\)*\+,;=]|%[0-9a-f]{2})+@)?(?:
