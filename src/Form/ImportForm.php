@@ -488,6 +488,7 @@ class ImportForm extends FormBase {
                 if (false == $node)
                 {
                     $node = Node::create($values);
+                    drupal_set_message('Nid: '.$node->id().' - Created new article');
                 }
                 else
                 {
