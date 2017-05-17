@@ -110,7 +110,7 @@ function drush_joomigrate_post_delete_tags()
     $ids = \Drupal::entityQuery('taxonomy_term')
         ->condition('vid', 'tags')
         ->exists('field_tag_joomla_id')
-        ->condition('field_joomla_id', 0, '>')
+        ->condition('field_tag_joomla_id', 0, '>')
         ->execute();
 
     if(count($ids) > 0){
