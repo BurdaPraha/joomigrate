@@ -1,4 +1,20 @@
-joomigrate_form:
-  title: 'Joomigrate Form'
-  description: 'Callback for generating form.'
-  route_name: joomigrate
+joomigrate.admin.j3k2:
+  title: 'Joomla 3 K2'
+  description: 'Import form'
+  parent: system.admin_config_development
+  route_name: j3k2
+  weight: 100
+
+joomigrate.admin.j3_categories:
+  title: 'Joomla 3 Articles Import'
+  description: 'Import articles from vanilla Joomla 3.5.1'
+  parent: system.admin_config_development
+  route_name: j3_categories
+  weight: 101
+
+joomigrate.admin.j3_articles:
+  title: 'Joomla 3 Categories Import'
+  description: 'Import categories from vanilla Joomla 3.5.1'
+  parent: system.admin_config_development
+  route_name: j3_articles
+  weight: 102

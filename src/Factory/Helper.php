@@ -119,6 +119,30 @@ class Helper
 
 
     /**
+     * Using pathauto module
+     * @param $string
+     * @param $node_id
+     * @param $lang_code
+     * @return array
+     */
+    public static function articleAlias($string, $node_id, $lang_code)
+    {
+        $values = [];
+
+        if(!empty($string) && strlen($string) > 5)
+        {
+            $path = \Drupal::service('path.alias_storage')->save('/node/' . $node_id, '/' . $string, $lang_code);
+            $values['path'] = [
+                'pathauto'  => 0,
+                'alias'     => $path['alias']
+            ];
+        }
+
+        return $values;
+    }
+
+
+    /**
      * Check if article as promoted or not
      * @param array $article_data columns which we will check to contain language_keys
      * @param array $language_keys simple array with have keys as 'Promotion', 'Advertisment' etc

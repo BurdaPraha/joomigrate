@@ -1,6 +1,22 @@
-joomigrate:
-  path: 'joomigrate'
+# each cms forms
+
+j3k2:
+  path: 'joomigrate/j3k2'
   defaults:
-    _form: '\Drupal\joomigrate\Form\ImportForm'
+    _form: '\Drupal\joomigrate\Form\J3K2'
+  requirements:
+    _permission: 'access joomigrate page'
+
+j3_categories:
+  path: 'joomigrate/j3-categories'
+  defaults:
+    _form: '\Drupal\joomigrate\Form\Joomla3'
+  requirements:
+    _permission: 'access joomigrate page'
+
+j3_articles:
+  path: 'joomigrate/j3-articles'
+  defaults:
+    _form: '\Drupal\joomigrate\Form\Joomla3'
   requirements:
     _permission: 'access joomigrate page'

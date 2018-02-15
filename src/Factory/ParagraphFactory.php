@@ -42,4 +42,47 @@ class ParagraphFactory
 
         return ['target_id' => $paragraph->id(), 'target_revision_id' => $paragraph->getRevisionId()];
     }
+
+
+    /**
+     * @param $string
+     * @param $user_id
+     * @param $node_id
+     * @return array|null
+     */
+    public static function createText($string, $user_id, $node_id)
+    {
+        $p = null;
+
+        if(!empty($string) && strlen(strip_tags($string)) > 10)
+        {
+            $p = self::make($string, $user_id, $node_id);
+        }
+
+        return $p;
+    }
+
+
+    /**
+     * @param $id
+     */
+    public static function remove($id)
+    {
+        $p = Paragraph::load($id);
+        if($p){
+            $p->delete();
+        }
+    }
+
+    public static function removeFromNode($node)
+    {
+        $paragraphs = $node->get('field_paragraphs')->getValue();
+        foreach ($paragraphs as $n => $i)
+        {
+            self::remove($i['target_id']);
+        }
+
+
+        return $node;
+    }
 }

@@ -55,4 +55,57 @@ class TermFactory
 
         return $term->id();
     }
+
+    /**
+     * Serialized keywords (can be used old meta keywords tag data) by "," to tags taxonomy terms
+     * @param $string
+     * @param $node_id
+     * @return array
+     */
+    public static function keywordsToTags($string, $node_id)
+    {
+        $variables = [];
+
+        // tags
+        if(!empty($string) && strlen($string) > 5)
+        {
+            $tags       = [];
+            $keywords   = explode(',', $string);
+
+            foreach($keywords as $k => $tag)
+            {
+                // tag name
+                $name = trim($tag);
+
+                // check existing id
+                $tagExist = \Drupal::entityQuery('taxonomy_term')
+                    ->condition('vid', 'tags')
+                    ->condition('name', $name, 'CONTAINS')
+                    ->execute();
+
+                if($tagExist)
+                {
+                    // use existing
+                    $term_id = end($tagExist);
+                }
+                else
+                {
+                    // not exist
+                    $term_id = TermFactory::tag($name, $node_id);
+                }
+
+                // store
+                $tags['target_id'] = $term_id;
+            }
+
+            // return var
+            if(count($tags) > 1)
+            {
+                $variables['field_tags'] = $tags;
+            }
+        }
+
+
+        return $variables;
+    }
 }
