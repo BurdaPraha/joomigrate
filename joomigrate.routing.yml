@@ -4,19 +4,22 @@ j3k2:
   path: 'joomigrate/j3k2'
   defaults:
     _form: '\Drupal\joomigrate\Form\J3K2'
+    _title: 'Import Joomla 3 K2 articles'
   requirements:
     _permission: 'access joomigrate page'
 
 j3_categories:
   path: 'joomigrate/j3-categories'
   defaults:
-    _form: '\Drupal\joomigrate\Form\Joomla3'
+    _form: '\Drupal\joomigrate\Form\j3Categories'
+    _title: 'Import Joomla 3 categories'
   requirements:
     _permission: 'access joomigrate page'
 
 j3_articles:
   path: 'joomigrate/j3-articles'
   defaults:
-    _form: '\Drupal\joomigrate\Form\Joomla3'
+    _form: '\Drupal\joomigrate\Form\J3Articles'
+    _title: 'Import Joomla 3 articles'
   requirements:
     _permission: 'access joomigrate page'

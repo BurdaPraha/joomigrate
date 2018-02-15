@@ -8,6 +8,8 @@ use Drupal\file\Entity\File;
 class FileFactory
 {
     /**
+     * Create new drupal file entity
+     *
      * @param $path - full path of image
      * @param $file_name - original name of image
      * @param null $entity_id int - just for loging
@@ -22,7 +24,7 @@ class FileFactory
 
         if(!$is_absolute)
         {
-            $full_path = \Drupal::root() . "/sites/default/files/joomla/{$path}";
+            $full_path = \Drupal::root() . "/sites/default/files/joomigrate/{$path}";
 
             // png quick fix
             $full_path_png = str_replace(".jpg", ".png", $full_path);
@@ -64,6 +66,7 @@ class FileFactory
                 drupal_set_message($prefix_id . 'Problem with file_save_data, file: "' . $path . '"', 'warning');
             }
         }
+
 
         return null;
     }

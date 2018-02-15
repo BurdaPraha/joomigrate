@@ -2,22 +2,28 @@
 
 namespace Drupal\joomigrate\Factory;
 
-class UserFactory
+/**
+ * Class UserFactory
+ * @package Drupal\joomigrate\Factory
+ */
+class UserFactory extends BaseFactory
 {
     /**
      * Create user, author for imported article
      *
-     * @param $JoomlaUserId
+     * @param $cms_user_id
      * @return int|null|string
      * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
      */
-    public static function make($JoomlaUserId)
+    public function make($cms_user_id)
     {
-        if(empty($JoomlaUserId) || null == $JoomlaUserId) $JoomlaUserId = 1;
+        if(empty($cms_user_id) || null == $cms_user_id){
+            $cms_user_id = 1;
+        }
 
-        $findUser = \Drupal::entityTypeManager()
-            ->getStorage('user')
-            ->loadByProperties(['field_joomla_id' => $JoomlaUserId]);
+        $findUser = \Drupal::entityTypeManager()->getStorage('user')->loadByProperties([
+            $this->sync_field_name => $cms_user_id
+        ]);
 
         if($findUser)
         {
@@ -31,10 +37,11 @@ class UserFactory
         $user->setPassword(time());
         $user->enforceIsNew();
         $user->setEmail(time() . "@studioart.cz");
-        $user->setUsername($JoomlaUserId);
+        $user->setUsername($cms_user_id);
 
         // Optional.
-        $user->set('field_joomla_id', $JoomlaUserId);
+        $user->set($this->sync_field_name, $cms_user_id);
+
         $user->set('init', 'email');
         $user->set('langcode', $language);
         $user->set('preferred_langcode', $language);

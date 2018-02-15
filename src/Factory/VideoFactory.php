@@ -25,18 +25,7 @@ class VideoFactory
             if($mp4)
             {
                 // {mp4}29660{/mp4}
-                $file   = FileFactory::make('media/k2/videos/' . $mp4 . '/', $mp4 . '.mp4');
-                $video_paragraph = Paragraph::create([
-                    'id'          => NULL,
-                    'type'        => 'video',
-                    'uid'         => $user_id,
-                    'field_file'  => [
-                        'target_id'   => $file->id()
-                    ],
-                ]);
-                $video_paragraph->isNew();
-                $video_paragraph->save();
-
+                $video_paragraph = self::createMp4('media/k2/videos/' . $mp4 . '/', $mp4 . '.mp4', $user_id);
             }
             if($youtube)
             {
@@ -63,6 +52,31 @@ class VideoFactory
         }
 
         return $paragraphs;
+    }
+
+
+    /**
+     * @param $path
+     * @param null $file_name
+     * @param $user_id
+     * @return \Drupal\Core\Entity\EntityInterface|static
+     */
+    public static function createMp4($path, $file_name = null, $user_id)
+    {
+        $file   = FileFactory::make($path, $file_name, $user_id);
+        $p = Paragraph::create([
+            'id'          => NULL,
+            'type'        => 'video',
+            'uid'         => $user_id,
+            'field_file'  => [
+                'target_id'   => $file->id()
+            ],
+        ]);
+        $p->isNew();
+        $p->save();
+
+
+        return $p;
     }
 
 }

@@ -4,11 +4,8 @@ namespace Drupal\joomigrate\Factory;
 
 use Drupal\paragraphs\Entity\Paragraph;
 
-use Drupal\joomigrate\Factory\MediaFactory;
-
 class ParagraphFactory
 {
-
     /**
      * @param $data
      * @param int $user_id
@@ -39,6 +36,7 @@ class ParagraphFactory
         ]);
         $paragraph->isNew();
         $paragraph->save();
+
 
         return ['target_id' => $paragraph->id(), 'target_revision_id' => $paragraph->getRevisionId()];
     }
@@ -74,6 +72,10 @@ class ParagraphFactory
         }
     }
 
+    /**
+     * @param $node
+     * @return mixed
+     */
     public static function removeFromNode($node)
     {
         $paragraphs = $node->get('field_paragraphs')->getValue();

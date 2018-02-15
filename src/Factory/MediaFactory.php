@@ -95,12 +95,14 @@ class MediaFactory
             return ['target_id' => $gallery_paragraph->id(), 'target_revision_id' => $gallery_paragraph->getRevisionId()];
         }
 
+
         return null;
     }
 
 
     /**
      * Create file from existing source and media picture or use existing by name
+     *
      * @param $path
      * @param $description string
      * @param $credits string
@@ -154,6 +156,7 @@ class MediaFactory
             return $image_media;
         }
 
+
         return null;
     }
 
@@ -193,6 +196,7 @@ class MediaFactory
 
             $data = $doc->saveHTML();
         }
+
 
         return $data;
     }

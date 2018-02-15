@@ -85,7 +85,7 @@ class J3K2 extends ExampleForm
      * @param $context
      * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
      */
-    public static function processBatch($data, &$context)
+    public function processBatch($data, &$context)
     {
         // can be saved or skipp it?
         if('0' == $data['Trash'])
@@ -157,6 +157,7 @@ class J3K2 extends ExampleForm
                 // video or text
                 $article_type = (!empty($data['Category Name']) && 'Video' == $data['Category Name'] ? 4 : 3);
 
+                $channel = TermFactory::channel($data['Category Name']);
 
                 // setup basic values
                 $values = [
@@ -180,7 +181,7 @@ class J3K2 extends ExampleForm
 
                     // category
                     'field_channel'     => [
-                        'target_id' => TermFactory::channel($data['Category Name'])
+                        'target_id' => $channel['id']
                     ],
 
                     // set as text article
@@ -204,17 +205,19 @@ class J3K2 extends ExampleForm
 
                 if(true == $promotion)
                 {
+                    $channel = TermFactory::channel('PR článek');
                     $values['field_channel'] = [
-                        'target_id' => TermFactory::channel('PR článek')
+                        'target_id' => $channel['id']
                     ];
                 }
 
 
                 if(true == $draft)
                 {
+                    $channel = TermFactory::channel('--- Check this! ---');
                     $values['status'] = 0;
                     $values['field_channel'] = [
-                        'target_id' => TermFactory::channel('--- Check this! ---')
+                        'target_id' => $channel['id']
                     ];
                 }
 

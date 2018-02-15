@@ -4,40 +4,58 @@ namespace Drupal\joomigrate\Factory;
 
 use Drupal\taxonomy\Entity\Term;
 
+/**
+ * @todo: create instance for sync id
+ *
+ * Class TermFactory
+ * @package Drupal\joomigrate\Factory
+ */
 class TermFactory
 {
     /**
-     * Create channel for article or use existing by name
+     * Create channel for article or use existing by name and return object with "is_new" flag and this entity
      *
      * @param $name
      * @param int $joomla_id
-     * @return int|null|string
+     * @param null $parent_id
+     * @return \stdClass
      * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
      */
-    public static function channel($name, $joomla_id = 1)
+    public static function channel($name, $joomla_id = 0, $parent_id = null)
     {
-        $channelExisting = \Drupal::entityTypeManager()
-            ->getStorage('taxonomy_term')
-            ->loadByProperties(['name' => $name, 'vid' => 'channel']);
+        $result = new \stdClass();
+        $result->is_new = false;
+        $result->entity = null;
 
-        if($channelExisting)
+        $props = ['name' => $name, 'vid' => 'channel'];
+
+        $existing = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties($props);
+        if($existing)
         {
             // use existing
-            return end($channelExisting)->id();
+            $result->entity = end($existing);
+        }
+        else
+        {
+            // not exist
+            if($joomla_id > 0){
+                $props['field_joomla_id'] = $joomla_id;
+            }
+
+            $term = Term::create($props);
+            $term->save();
+
+            $result->entity = $term;
+            $result->is_new = true;
         }
 
-        // not exist
-        $term = Term::create([
-            'vid'             => 'channel',
-            'name'            => $name,
-            'field_joomla_id' => $joomla_id
-        ]);
-        $term->save();
 
-        return $term->id();
+        return $result;
     }
 
     /**
+     * Create new tag term for using in articles
+     *
      * @param $name
      * @param $pair_id
      * @return int|null|string
@@ -58,6 +76,7 @@ class TermFactory
 
     /**
      * Serialized keywords (can be used old meta keywords tag data) by "," to tags taxonomy terms
+     *
      * @param $string
      * @param $node_id
      * @return array

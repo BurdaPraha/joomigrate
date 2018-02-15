@@ -2,6 +2,8 @@
 
 namespace Drupal\joomigrate\Factory;
 
+use Drupal\Core\Field\BaseFieldDefinition;
+
 class Helper
 {
     /**
@@ -18,6 +20,8 @@ class Helper
 
 
     /**
+     * Put article fields and searched keywords in array, result is bool
+     *
      * @param array $article_data
      * @param array $language_keys
      * @return bool
@@ -44,6 +48,7 @@ class Helper
 
     /**
      * Shortcode content
+     *
      * @param $string
      * @param $tag
      * @return null
@@ -58,6 +63,7 @@ class Helper
 
     /**
      * Find just YoutubeId, can be in format: "https://www.youtube.com/watch?v=20RoyFU4mjg" or "20RoyFU4mjg", ...
+     *
      * @param $string
      * @return string
      */
@@ -77,6 +83,8 @@ class Helper
 
 
     /**
+     * Is it absolute url?
+     *
      * @param $url
      * @return bool
      */
@@ -93,6 +101,7 @@ class Helper
 
     /**
      * Convert entity to characters
+     *
      * @param $v
      * @return mixed
      */
@@ -119,6 +128,8 @@ class Helper
 
 
     /**
+     * Create new article alias, using pathauto module
+     *
      * Using pathauto module
      * @param $string
      * @param $node_id
@@ -143,7 +154,33 @@ class Helper
 
 
     /**
+     * Create new alias for channel, using pathauto module
+     *
+     * @param $string
+     * @param $tax_id
+     * @param $lang_code
+     * @return array
+     */
+    public static function channelAlias($string, $tax_id, $lang_code)
+    {
+        $values = [];
+
+        if(!empty($string) && strlen($string) > 5)
+        {
+            $path = \Drupal::service('path.alias_storage')->save('/taxonomy/' . $tax_id, '/' . $string, $lang_code);
+            $values['path'] = [
+                'pathauto'  => 0,
+                'alias'     => $path['alias']
+            ];
+        }
+
+        return $values;
+    }
+
+
+    /**
      * Check if article as promoted or not
+     *
      * @param array $article_data columns which we will check to contain language_keys
      * @param array $language_keys simple array with have keys as 'Promotion', 'Advertisment' etc
      * @return bool
@@ -156,6 +193,7 @@ class Helper
 
     /**
      * Check if article is just concept or testing stuff
+     *
      * @param array $article_data associative array with keys as kind
      * @param array $language_keys words which says that article is not for public use
      * @return bool
@@ -163,5 +201,101 @@ class Helper
     public static function checkDraftArticle(array $article_data, array $language_keys)
     {
         return Helper::checkEasyMatch($article_data, $language_keys);
+    }
+
+
+    /**
+     * @param $data
+     * @param $className
+     * @return string
+     */
+    public static function getDivContent($data, $className)
+    {
+        $page = new \DOMDocument();
+        @$page->loadHTML($data);
+        $x = new \DOMXPath($page);
+
+        $nodes = $x->query("//*[contains(@class, '$className')]");
+
+        foreach ($nodes as $node)
+        {
+            $e = $node->nodeValue;
+            $d = new \DOMDocument();
+            $d->appendChild($d->importNode($node, TRUE));
+            $h = $d->saveHTML();
+
+            return $h;
+        }
+    }
+
+
+    /**
+     * @param $string
+     * @return null
+     */
+    public static function getVideoJSPath($string)
+    {
+        $page = new \DOMDocument();
+        @$page->loadHTML($string);
+        $x = new \DOMXPath($page);
+
+        $scripts = $x->query("//script");
+        foreach ($scripts as $s) {
+            if (preg_match("#'src': '(.*?)'#", $s->nodeValue, $matches)) {
+                return $matches[1];
+            }
+        }
+
+        return null;
+    }
+
+
+    /**
+     * @param $string
+     * @return string
+     */
+    public static function findGalleryImagesInString($string)
+    {
+        $gallery = [];
+        $slides = 0;
+
+        $page = new \DOMDocument();
+        @$page->loadHTML($string);
+        $x = new \DOMXPath($page);
+
+
+        // how many slides?
+        $n = $x->query("//ul[contains(@id, 'gallerynav')]");
+        foreach ($n as $node){
+            $slides = count($node->childNodes);
+        }
+
+        // get original images
+        $a = $x->query("//*[contains(@rel, 'rokbox')]");
+        foreach ($a as $slide => $node)
+        {
+            foreach($node->attributes as $attribute)
+            {
+                if('href' === $attribute->name){
+                    $gallery[$slide]['filename'] = $attribute->textContent;
+                }
+            }
+        }
+
+        // get images description
+        $d = $x->query("//*[contains(@class, 'gallery-image-description')]");
+        foreach ($d as $slide => $node)
+        {
+            $e = $node->nodeValue;
+            $d = new \DOMDocument();
+
+            $d->appendChild($d->importNode($node, true));
+            $d->replaceChild($d->firstChild->firstChild, $d->firstChild);
+
+            $gallery[$slide]['description'] = $d->saveHTML();
+        }
+
+
+        return json_encode($gallery);
     }
 }

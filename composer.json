@@ -3,7 +3,6 @@
   "type": "drupal-module",
   "description": "Experimental migration module for Drupal 8",
   "minimum-stability": "dev",
-  "license": "MIT",
   "authors": [
     {
       "name": "Michal Landsman",

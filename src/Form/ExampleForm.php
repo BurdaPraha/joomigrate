@@ -258,7 +258,7 @@ class ExampleForm extends FormBase
                     }
                 }
                 else
-                    {
+                {
                     $error_msg = $this->t("CSV columns don't match expected headers columns!");
                 }
 
@@ -286,11 +286,8 @@ class ExampleForm extends FormBase
      * @param $context
      * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
      */
-    public static function processBatch($data, &$context)
+    public function processBatch($data, &$context)
     {
-        // get db instance
-        $db = \Drupal::database();
-
         // load node by joomla id
         $nodes = \Drupal::entityTypeManager()
             ->getStorage('node')
@@ -316,6 +313,7 @@ class ExampleForm extends FormBase
             // is article public?
             $status = ('0' == trim($data['Trash']) && '1' == trim($data['Published']) ? 1 : 0);
 
+            $channel = TermFactory::channel($data['Category Name']);
 
             // setup basic values
             $values = [
@@ -339,7 +337,7 @@ class ExampleForm extends FormBase
 
                 // category
                 'field_channel'     => [
-                    'target_id' => TermFactory::channel($data['Category Name'])
+                    'target_id' => $channel['id']
                 ],
 
                 // author
