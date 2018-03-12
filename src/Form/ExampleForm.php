@@ -243,22 +243,34 @@ class ExampleForm extends FormBase
             while ($row = fgetcsv($handle, 1000, ','))
             {
                 // checking if column from csv and row match
+
                 if (count($row) > 0 && (count($headers) == count($row)))
                 {
                     $data = array_combine($headers, $row);
                     // validating if the csv has the exact same headers
+
+                    /*
                     // @todo maybe move this logic in form validate
-                    if ($counter == 0 && !$valid_csv = Helper::validCsv($data)) {
-                        break;
+                    if ($counter == 0 && !$valid_csv = Helper::validCsv($data))
+                    {
+                        $error_msg = $this->t("CSV data not valid");
                     }
                     elseif ($counter > 0)
                     {
-                        // add row to be processed during batch run
-                        $batch['operations'][] = [[get_class($this), 'processBatch'], [$data]];
+
                     }
+                    */
+
+                    // add row to be processed during batch run
+                    $valid_csv = true;
+                    $batch['operations'][] = [[get_class($this), 'processBatch'], [$data]];
+
                 }
                 else
                 {
+                    bdump($row);
+                    bdump($headers);
+                    die;
                     $error_msg = $this->t("CSV columns don't match expected headers columns!");
                 }
 

@@ -211,21 +211,22 @@ class Helper
      */
     public static function getDivContent($data, $className)
     {
+        $data = html_entity_decode($data);
+        $data = mb_convert_encoding($data, 'HTML-ENTITIES', "UTF-8");
+
         $page = new \DOMDocument();
         @$page->loadHTML($data);
         $x = new \DOMXPath($page);
-
         $nodes = $x->query("//*[contains(@class, '$className')]");
 
+        $d = new \DOMDocument();
         foreach ($nodes as $node)
         {
-            $e = $node->nodeValue;
-            $d = new \DOMDocument();
-            $d->appendChild($d->importNode($node, TRUE));
-            $h = $d->saveHTML();
-
-            return $h;
+            $d->appendChild($d->importNode($node,true));
         }
+
+
+        return $d->saveHTML();
     }
 
 

@@ -64,8 +64,8 @@ class J3Articles extends ExampleForm
             'hits',
             'metadata',
             'featured',
-            'language',
-            'xreference',
+            //'language',
+            //'xreference',
         ];
     }
 
@@ -117,7 +117,7 @@ class J3Articles extends ExampleForm
             // setup basic values
             $values = [
                 'type'              => 'article',
-                'langcode'          => 'cs',
+                //'langcode'          => 'cs',
                 "promote"           => 1,
 
                 // visible?
@@ -135,12 +135,7 @@ class J3Articles extends ExampleForm
 
                 // category
                 'field_channel'     => [
-                    'target_id' => $channel['id']
-                ],
-
-                // set as text article
-                'field_article_type'  => [
-                    'target_id' => 3
+                    'target_id' => $channel->id
                 ],
 
                 // author
@@ -214,9 +209,6 @@ class J3Articles extends ExampleForm
             {
                 $gallery = MediaFactory::gallery($data['title'], $find_gallery, $data['alias'], $data['id'], $user_id);
                 $paragraphs[] = $gallery;
-
-                // change to gallery type
-                $node->set('field_article_type', ['target_id' => 5]);
             }
 
 
@@ -241,8 +233,6 @@ class J3Articles extends ExampleForm
                     'target_id' => $video->id(),
                     'target_revision_id' => $video->getRevisionId()
                 ];
-
-                $node->set('field_article_type', ['target_id' => 5]);
             }
 
 

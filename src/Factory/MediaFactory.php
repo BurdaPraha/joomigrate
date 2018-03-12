@@ -5,6 +5,7 @@ namespace Drupal\joomigrate\Factory;
 use Drupal\media_entity\Entity\Media;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\joomigrate\Factory\FileFactory;
+use Drupal\paragraphs\Entity\Paragraph;
 
 class MediaFactory
 {
