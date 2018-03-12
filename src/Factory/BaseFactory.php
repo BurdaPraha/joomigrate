@@ -7,7 +7,7 @@ class BaseFactory
     /**
      * @var string
      */
-    public $sync_field_name = 'joomigrate_id';
+    public $sync_field_name = 'field_joomigrate_id';
 
     /**
      * @var

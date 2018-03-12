@@ -82,6 +82,7 @@ class ExampleForm extends FormBase
         $this->dateFormatter = $date_formatter;
     }
 
+
     /**
      * {@inheritdoc}
      */
@@ -110,6 +111,7 @@ class ExampleForm extends FormBase
 
 
     /**
+     * Form markup
      * {@inheritdoc}
      */
     public function buildForm(array $form, FormStateInterface $form_state)
@@ -130,9 +132,9 @@ class ExampleForm extends FormBase
             ]),
         ];
 
-        $form['copy'] = [
+        $form['header'] = [
             '#type' => 'checkbox',
-            '#title' => t('Skip first row'),
+            '#title' => t('First row is the Header'),
         ];
 
         $form['submit'] = [
@@ -146,6 +148,7 @@ class ExampleForm extends FormBase
 
 
     /**
+     * Upload validator
      * {@inheritdoc}
      */
     public function validateForm(array &$form, FormStateInterface $form_state)
@@ -170,7 +173,7 @@ class ExampleForm extends FormBase
 
 
     /**
-     * Strict header columns
+     * Strict header columns, can be extended or used from the first line of CSV file
      * @return array
      */
     public function getCsvHeaders()
@@ -213,76 +216,57 @@ class ExampleForm extends FormBase
 
 
     /**
+     * Validate form and create batch cycle
      * {@inheritdoc}
      */
     public function submitForm(array &$form, FormStateInterface $form_state)
     {
-        $form_values = $form_state->getValues();
         ini_set('auto_detect_line_endings', true);
 
-        $filepath = $form_values['file_upload']->getFileUri();
-        $handle = fopen($filepath, "r");
+        $error_msg      = '';
+        $valid_csv      = false;
+        $form_values    = $form_state->getValues();
+        $file_path      = $form_values['file_upload']->getFileUri();
+        $handle         = fopen($file_path, "r");
 
-        $error_msg = '';
-
-        if ($handle) {
-            // counter to skip line one cause considered as csv header
-            $counter = 0;
-            $batch = [
-                'operations'        => [],
-                'finished'          => [get_class($this), 'finishBatch'],
-                'title'             => $this->t('CSV File upload synchronization'),
-                'init_message'      => $this->t('Starting csv file upload synchronization.'),
-                'progress_message'  => t('Completed step @current of @total.'),
-                'error_message'     => t('CSV file upload synchronization has encountered an error.'),
-                'file'              => __DIR__ . '/../../config.admin.inc',
-            ];
-            $valid_csv = FALSE;
-            $headers = $this->getCsvHeaders(); // @todo !!!!!
-
-            while ($row = fgetcsv($handle, 1000, ','))
-            {
-                // checking if column from csv and row match
-
-                if (count($row) > 0 && (count($headers) == count($row)))
-                {
-                    $data = array_combine($headers, $row);
-                    // validating if the csv has the exact same headers
-
-                    /*
-                    // @todo maybe move this logic in form validate
-                    if ($counter == 0 && !$valid_csv = Helper::validCsv($data))
-                    {
-                        $error_msg = $this->t("CSV data not valid");
-                    }
-                    elseif ($counter > 0)
-                    {
-
-                    }
-                    */
-
-                    // add row to be processed during batch run
-                    $valid_csv = true;
-                    $batch['operations'][] = [[get_class($this), 'processBatch'], [$data]];
-
-                }
-                else
-                {
-                    bdump($row);
-                    bdump($headers);
-                    die;
-                    $error_msg = $this->t("CSV columns don't match expected headers columns!");
-                }
-
-                $counter++;
-            }
-
-            if ($valid_csv) {
-                batch_set($batch);
-            }
-        }
-        else {
+        if (!$handle) {
             $error_msg = $this->t('CSV file could not be open!');
+        }
+
+        $batch = [
+            'operations'        => [],
+            'finished'          => [get_class($this), 'finishBatch'],
+            'title'             => $this->t('CSV File upload synchronization'),
+            'init_message'      => $this->t('Starting csv file upload synchronization.'),
+            'progress_message'  => t('Completed step @current of @total.'),
+            'error_message'     => t('CSV file upload synchronization has encountered an error.'),
+            'file'              => __DIR__ . '/../../config.admin.inc',
+        ];
+
+        $headers = (int)$form_values['header'] === 0 ? $this->getCsvHeaders() : fgetcsv($handle, 1000, ';');
+
+        $counter = 0;
+        while ($row = fgetcsv($handle, 1000, ','))
+        {
+            // checking if column from csv and row match
+            if (count($row) > 0 && (count($headers) == count($row)))
+            {
+                $data = array_combine($headers, $row);
+
+                // add row to be processed during batch run
+                $valid_csv = true;
+                $batch['operations'][] = [[get_class($this), 'processBatch'], [$data]];
+            }
+            else
+            {
+                $error_msg = $this->t("CSV columns don't match expected headers columns! Try skip first row if CSV contain header.");
+            }
+
+            ++$counter;
+        }
+
+        if ($valid_csv) {
+            batch_set($batch);
         }
 
         if ($error_msg) {
@@ -474,6 +458,10 @@ class ExampleForm extends FormBase
      *
      * This function is a static function to avoid serializing the ConfigSync
      * object unnecessarily.
+     *
+     * @param $success
+     * @param $results
+     * @param $operations
      */
     public static function finishBatch($success, $results, $operations)
     {
@@ -488,12 +476,13 @@ class ExampleForm extends FormBase
                 }
                 drupal_set_message(\Drupal::translation()->translate('The csv data parser was synchronized with errors.'), 'warning');
             }
-            else {
-                drupal_set_message(\Drupal::translation()->translate('The csv data parser was synchronized successfully.'));
+            else
+            {
+                drupal_set_message(\Drupal::translation()->translate('The csv data parser was synchronized successfully. Run cron for publish scheduled articles.'));
             }
 
-            // call cron for node scheduler
-            //\Drupal::service('cron')->run(); // todo: find way how it can be run without Internal server error
+            // todo: find way how it can be run without Internal server error
+            //\Drupal::service('cron')->run();
         }
         else
         {
