@@ -85,16 +85,16 @@ class J3Articles extends ExampleForm
         $created    = new \DateTime($data['created']);
         $publish    = new \DateTime($data['publish_up']);
         $down       = new \DateTime($data['publish_down']);
+        $user       = new UserFactory();
 
         // if not been manually edited
         if(null == $node || $node->changed->value == $created->getTimestamp())
         {
-
             // find or create author
-            $user = new UserFactory();
             $user_col = $data['created_by'];
 
-            if(!empty(trim($data['created_by_alias']))){
+            if(!empty(trim($data['created_by_alias'])))
+            {
                 $user_cleaner = explode('/', $data['created_by_alias']);
                 $name = trim($user_cleaner[0]);
                 if(!empty($name)){

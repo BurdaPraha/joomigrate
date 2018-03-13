@@ -133,13 +133,12 @@ class ExampleForm extends FormBase
         ];
 
         $form['header'] = [
-            '#type' => 'checkbox',
+            '#type' => 'radio',
+            '#options' => [
+                0 => '<span>' . t('Skip first row') . '</span>',
+                1 => '<span>' . t('Use first row as Header') . '</span>',
+            ],
             '#title' => t('Use first row as Header'),
-        ];
-
-        $form['header_skip'] = [
-            '#type' => 'checkbox',
-            '#title' => t('Skip first row'),
         ];
 
         $form['submit'] = [
@@ -232,7 +231,7 @@ class ExampleForm extends FormBase
         $valid_csv      = false;
         $form_values    = $form_state->getValues();
         $file_path      = $form_values['file_upload']->getFileUri();
-        $handle         = fopen($file_path, "r");
+        $handle         = fopen($file_path, 'r');
 
         if (!$handle) {
             $error_msg = $this->t('CSV file could not be open!');
@@ -248,11 +247,25 @@ class ExampleForm extends FormBase
             'file'              => __DIR__ . '/../../config.admin.inc',
         ];
 
-        $headers = (int)$form_values['header'] === 0 ? $this->getCsvHeaders() : fgetcsv($handle, 1000, ';');
+
+        if((int)$form_values['header'])
+        {
+            $headers = $this->getCsvHeaders();
+        }else {
+            $headers = fgetcsv($handle, 1000, ';');
+        }
 
         $counter = 0;
         while ($row = fgetcsv($handle, 1000, ','))
         {
+            //if(1 === (int)$form_values['header_skip']) {
+                //continue;
+            //}
+
+            bdump($row, 'row');
+            bdump($headers, 'headers');
+            die;
+
             // checking if column from csv and row match
             if (count($row) > 0 && (count($headers) == count($row)))
             {
@@ -264,7 +277,7 @@ class ExampleForm extends FormBase
             }
             else
             {
-                $error_msg = $this->t("CSV columns don't match expected headers columns! Try skip first row if CSV contain header.");
+                $error_msg = $this->t('CSV columns don\'t match expected headers columns! Try skip first row if CSV contain header.');
             }
 
             ++$counter;
@@ -302,6 +315,7 @@ class ExampleForm extends FormBase
         $created    = new \DateTime($data['Created']);
         $publish    = new \DateTime($data['Publish Up']);
         $down       = new \DateTime($data['Publish Down']);
+        $user       = new UserFactory();
 
 
         // if not been manually edited
@@ -309,7 +323,7 @@ class ExampleForm extends FormBase
         {
 
             // find or create author
-            $user_id    = UserFactory::make($data['User ID']);
+            $user_id = $user->make($data['User ID']);
 
             // is article public?
             $status = ('0' == trim($data['Trash']) && '1' == trim($data['Published']) ? 1 : 0);
