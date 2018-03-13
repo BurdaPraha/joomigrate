@@ -92,7 +92,17 @@ class J3Articles extends ExampleForm
 
             // find or create author
             $user = new UserFactory();
-            $user_id = $user->make($data['created_by']);
+            $user_col = $data['created_by'];
+
+            if(!empty(trim($data['created_by_alias']))){
+                $user_cleaner = explode('/', $data['created_by_alias']);
+                $name = trim($user_cleaner[0]);
+                if(!empty($name)){
+                    $user_col = $user_cleaner[0];
+                }
+            }
+
+            $user_id = $user->make($user_col);
 
 
             // Promotion - todo: move parameters to form input / database, out of the script
@@ -111,8 +121,9 @@ class J3Articles extends ExampleForm
 
             // is article public?
             $status = trim($data['state']);
-            $channel = TermFactory::channel($data['catid']);
-            $perex = Helper::getDivContent($data['introtext'], 'article-perex');
+            $channel = TermFactory::channel($data['catid'], $data['catid']);
+            $perex = Helper::getDivContent($data['fulltext'], 'article-perex');
+            $perex = strip_tags($perex);
 
             // setup basic values
             $values = [
@@ -135,7 +146,7 @@ class J3Articles extends ExampleForm
 
                 // category
                 'field_channel'     => [
-                    'target_id' => $channel->id
+                    'target_id' => $channel->entity->id()
                 ],
 
                 // author
@@ -145,18 +156,27 @@ class J3Articles extends ExampleForm
                 "description"         => strip_tags($perex),
 
                 // perex
-                'field_teaser_text'   => strip_tags($perex),
+                'field_teaser_text'   => trim(html_entity_decode($perex))
             ];
 
             // sync
             $values[$article->sync_field_name] = $data['id'];
 
 
+            // have a gallery?
+            $find_gallery = Helper::findGalleryImagesInString($data['fulltext']);
+
+            if (count($find_gallery) > 1)
+            {
+                $gallery = MediaFactory::gallery($data['title'], $find_gallery, $data['alias'], $data['id'], $user_id);
+                $paragraphs[] = $gallery;
+            }
+
 
             // Teaser media
-            if(!empty($data['Teaser image']) && strlen($data['Teaser image']) > 10)
+            if(count($find_gallery) == 1)
             {
-                $media = MediaFactory::image($data['Teaser image'], $data['Image caption'], $data['Image credits'], $data['User ID'], $data['ID']);
+                $media = MediaFactory::image($find_gallery[0]['filename'], $data['title'], '', $user_id, $data['id']);
                 if($media)
                 {
                     $values['field_teaser_media'] = [
@@ -165,8 +185,9 @@ class J3Articles extends ExampleForm
                 }
             }
 
+
             // tags
-            $tags = TermFactory::keywordsToTags($data['Meta Keywords'], $data['ID']);
+            $tags = TermFactory::keywordsToTags($data['metakey'], $data['id']);
             array_merge($values, $tags);
 
 
@@ -191,24 +212,14 @@ class J3Articles extends ExampleForm
 
             // use existing alias
             $path = Helper::articleAlias($data['alias'], $node->id(), 'cs');
-            array_merge($values, $path);
+            $node->set('path', $path['path']);
 
 
             // main content
             $full_text = Helper::getDivContent($data['fulltext'], 'article-fulltext');
-            $text = ParagraphFactory::createText($full_text, $user_id, $data['ID']);
+            $text = ParagraphFactory::createText($full_text, $user_id, $data['id']);
             if($text){
                 $paragraphs[] = $text;
-            }
-
-
-            // have a gallery?
-            $find_gallery = Helper::findGalleryImagesInString($data['fulltext']);
-
-            if(strlen($find_gallery) > 20)
-            {
-                $gallery = MediaFactory::gallery($data['title'], $find_gallery, $data['alias'], $data['id'], $user_id);
-                $paragraphs[] = $gallery;
             }
 
 
@@ -227,12 +238,15 @@ class J3Articles extends ExampleForm
             if($about_video)
             {
                 $mp4 = Helper::getVideoJSPath($data['fulltext']);
-                $video = VideoFactory::createMp4($mp4, time() . '.mp4', $user_id);
+                if($mp4) {
 
-                $paragraphs[] = [
-                    'target_id' => $video->id(),
-                    'target_revision_id' => $video->getRevisionId()
-                ];
+                    $video = VideoFactory::createMp4($mp4, time() . '.mp4', $user_id);
+                    $paragraphs[] = [
+                        'target_id' => $video->id(),
+                        'target_revision_id' => $video->getRevisionId()
+                    ];
+
+                }
             }
 
 
@@ -256,7 +270,7 @@ class J3Articles extends ExampleForm
         else
         {
             // you can decide to create errors here comments codes below
-            $message = t('Data with @id was not synchronized', ['@id' => $data['ID']]);
+            $message = t('Data with @id was not synchronized', ['@id' => $data['id']]);
             $context['results']['errors'][] = $message;
         }
     }

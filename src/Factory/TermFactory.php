@@ -29,7 +29,15 @@ class TermFactory
 
         $props = ['name' => $name, 'vid' => 'channel'];
 
-        $existing = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties($props);
+        if($joomla_id > 0){
+            $props['field_joomigrate_id'] = $joomla_id;
+        }
+
+        $existing = \Drupal::entityTypeManager()
+            ->getStorage('taxonomy_term')
+            ->loadByProperties($props);
+
+
         if($existing)
         {
             // use existing
@@ -37,11 +45,6 @@ class TermFactory
         }
         else
         {
-            // not exist
-            if($joomla_id > 0){
-                $props['field_joomla_id'] = $joomla_id;
-            }
-
             $term = Term::create($props);
             $term->save();
 

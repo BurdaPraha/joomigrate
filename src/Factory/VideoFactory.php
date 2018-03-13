@@ -69,7 +69,7 @@ class VideoFactory
             'type'        => 'video',
             'uid'         => $user_id,
             'field_file'  => [
-                'target_id'   => $file->id()
+                'target_id'   => $file->id
             ],
         ]);
         $p->isNew();

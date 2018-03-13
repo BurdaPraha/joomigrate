@@ -134,7 +134,12 @@ class ExampleForm extends FormBase
 
         $form['header'] = [
             '#type' => 'checkbox',
-            '#title' => t('First row is the Header'),
+            '#title' => t('Use first row as Header'),
+        ];
+
+        $form['header_skip'] = [
+            '#type' => 'checkbox',
+            '#title' => t('Skip first row'),
         ];
 
         $form['submit'] = [
@@ -287,7 +292,7 @@ class ExampleForm extends FormBase
         // load node by joomla id
         $nodes = \Drupal::entityTypeManager()
             ->getStorage('node')
-            ->loadByProperties(['field_joomla_id' => $data['ID']]);
+            ->loadByProperties(['field_joomigrate_id' => $data['ID']]);
 
 
         // get one entity from array

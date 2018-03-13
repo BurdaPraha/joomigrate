@@ -12,6 +12,7 @@ class Helper
      */
     public static function validCsv($headers_data) {
         $is_valid = FALSE;
+
         foreach ($headers_data as $key => $header) {
             $is_valid = $key == $header;
         }
@@ -224,9 +225,10 @@ class Helper
         {
             $d->appendChild($d->importNode($node,true));
         }
+        $result = $d->saveHTML();
 
 
-        return $d->saveHTML();
+        return trim($result);
     }
 
 
@@ -253,7 +255,7 @@ class Helper
 
     /**
      * @param $string
-     * @return string
+     * @return array
      */
     public static function findGalleryImagesInString($string)
     {
@@ -297,6 +299,6 @@ class Helper
         }
 
 
-        return json_encode($gallery);
+        return $gallery;
     }
 }

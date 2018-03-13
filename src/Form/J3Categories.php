@@ -71,16 +71,19 @@ class J3Categories extends ExampleForm
     {
         if('com_content' == $data['extension'])
         {
-            $channel = TermFactory::channel($data['title']);
+            $channel = TermFactory::channel($data['title'], $data['id']);
             if(true === $channel->is_new)
             {
                 // @todo: check if parent exist before...
                 //$channel->entity->set('parent', $data['parent_id']);
-
                 $channel->entity->set('path', Helper::channelAlias($data['path'], $channel->entity->id(), 'cs'));
                 $channel->entity->set('status', $data['published']);
-                $channel->entity->save();
+
+            }else {
+                $channel->entity->set('title', $data['title']);
             }
+
+            $channel->entity->save();
         }
         else
         {

@@ -141,10 +141,10 @@ class MediaFactory
         if($file)
         {
             $image_media = Media::create([
-                'bundle'            => 'image',
-                'uid'               => $user,
-                'status'            => Media::PUBLISHED,
-                'field_joomla_id'   => substr($import_id, 0, 7),
+                'bundle'                => 'image',
+                'uid'                   => $user,
+                'status'                => Media::PUBLISHED,
+                'field_joomigrate_id'   => substr($import_id, 0, 7),
                 'field_description' => $description,
                 'field_source'      => $credits,
                 'field_image'       => [
