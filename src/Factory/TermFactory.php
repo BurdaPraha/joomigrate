@@ -12,48 +12,68 @@ use Drupal\taxonomy\Entity\Term;
  */
 class TermFactory
 {
+    public static $sync_field_channel   = 'field_joomigrate_id';
+    public static $sync_field_tag       = 'field_joomigrate_tag_id';
+
     /**
-     * Create channel for article or use existing by name and return object with "is_new" flag and this entity
-     *
-     * @param $name
-     * @param int $joomla_id
-     * @param null $parent_id
-     * @return \stdClass
+     * @param array $props
+     * @return \Drupal\Core\Entity\EntityInterface[]
      * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
      */
-    public static function channel($name, $joomla_id = 0, $parent_id = null)
+    public static function findChannel(array $props)
     {
-        $result = new \stdClass();
-        $result->is_new = false;
-        $result->entity = null;
-
-        $props = ['name' => $name, 'vid' => 'channel'];
-
-        if($joomla_id > 0){
-            $props['field_joomigrate_id'] = $joomla_id;
-        }
-
-        $existing = \Drupal::entityTypeManager()
+        $q = \Drupal::entityTypeManager()
             ->getStorage('taxonomy_term')
             ->loadByProperties($props);
 
 
-        if($existing)
+        return $q;
+    }
+
+    /**
+     * Create channel for article or use existing by name and return object
+     * @param int $sync_field
+     * @param $name
+     * @param null $parent_id
+     * @return \Drupal\Core\Entity\EntityInterface|mixed|null|static
+     * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+     */
+    public static function channel($sync_field = 0, $name, $parent_id = null)
+    {
+        $existing = [];
+        $term = null;
+
+        $props = ['name' => $name, 'vid' => 'channel', self::$sync_field_channel => $sync_field];
+
+        // sync ID has top priority (only categories import use-case)
+        if($sync_field > 0 && is_int($sync_field))
+        {
+            // first try search by ID
+            $existing = self::findChannel([self::$sync_field_channel => $sync_field]);
+        }
+
+        // if we can't find channel by sync id, try it again by name
+        if(count($existing) <= 0)
+        {
+            $existing = self::findChannel(['name' => $name, 'vid' => 'channel']);
+        }
+
+        if(count($existing) > 0)
         {
             // use existing
-            $result->entity = end($existing);
+            $term = end($existing);
+            drupal_set_message('tid: ' . $term->id() . ', name: ' . $name . ' - Used existing channel');
         }
         else
         {
             $term = Term::create($props);
             $term->save();
 
-            $result->entity = $term;
-            $result->is_new = true;
+            drupal_set_message('tid: ' . $term->id() . ', name: ' . $name . ' - Created new channel', 'success');
         }
 
 
-        return $result;
+        return $term;
     }
 
     /**
@@ -69,7 +89,7 @@ class TermFactory
         $term = Term::create([
             'vid'                   => 'tags',
             'name'                  => $name,
-            'field_tag_joomla_id'   => $pair_id
+            self::$sync_field_tag   => $pair_id
         ]);
         $term->save();
 

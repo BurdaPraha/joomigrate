@@ -66,24 +66,26 @@ class J3Categories extends ExampleForm
      * @param $data
      * @param $context
      * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+     * @throws \Drupal\Core\Entity\EntityStorageException
      */
     public function processBatch($data, &$context)
     {
         if('com_content' == $data['extension'])
         {
-            $channel = TermFactory::channel($data['title'], $data['id']);
-            if(true === $channel->is_new)
+            $channel = TermFactory::channel((int)$data['id'], $data['title']);
+
+            if(true === $channel->isNew())
             {
-                // @todo: check if parent exist before...
-                //$channel->entity->set('parent', $data['parent_id']);
-                $channel->entity->set('path', Helper::channelAlias($data['path'], $channel->entity->id(), 'cs'));
-                $channel->entity->set('status', $data['published']);
+                //$channel->entity->set('parent', $data['parent_id']); // @todo: check if parent exist before...
+                $channel->set('path', Helper::channelAlias($data['path'], $channel->entity->getEntityTypeId(), 'cs'));
+                $channel->set('status', $data['published']);
 
             }else {
-                $channel->entity->set('title', $data['title']);
+                // @todo: check manually edit of title - not rewrite
+                $channel->set('name', $data['title']);
             }
 
-            $channel->entity->save();
+            $channel->save();
         }
         else
         {

@@ -70,7 +70,7 @@ class MediaFactory
                 'status'              => Media::PUBLISHED,
                 'name'                => $name,
                 'field_media_images'  => $images,
-                'field_gallery_joomla_id' => $article_id,
+                'field_gallery_joomigrate_id' => $article_id,
                 'path' => [
                     'pathauto'  => 0,
                     'alias'     => '/galerie/' . $alias

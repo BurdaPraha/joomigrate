@@ -250,12 +250,9 @@ class ExampleForm extends FormBase
         ];
 
 
-        if(0 == $header_value)
-        {
-            bdump('pouzit z class');
+        if(0 == $header_value) {
             $headers = $this->getCsvHeaders();
         }else {
-            bdump('pouzit z csv');
             $headers = fgetcsv($handle, 1000, ';');
         }
 

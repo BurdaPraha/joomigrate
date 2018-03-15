@@ -121,7 +121,7 @@ class J3Articles extends ExampleForm
 
             // is article public?
             $status = trim($data['state']);
-            $channel = TermFactory::channel($data['catid'], $data['catid']);
+            $channel = TermFactory::channel((int)$data['catid'], $data['catid']);
             $perex = Helper::getDivContent($data['fulltext'], 'article-perex');
             $perex = strip_tags($perex);
 
@@ -129,7 +129,7 @@ class J3Articles extends ExampleForm
             $values = [
                 'type'              => 'article',
                 //'langcode'          => 'cs',
-                "promote"           => 1,
+                'promote'           => 1,
 
                 // visible?
                 "status"            => $status,
@@ -150,10 +150,10 @@ class J3Articles extends ExampleForm
                 ],
 
                 // author
-                "uid"                 => $user_id,
+                'uid'                 => $user_id,
 
                 // meta tags
-                "description"         => strip_tags($perex),
+                'description'         => strip_tags($perex),
 
                 // perex
                 'field_teaser_text'   => trim(html_entity_decode($perex))
@@ -196,7 +196,7 @@ class J3Articles extends ExampleForm
             {
                 $node = Node::create($values);
                 $node->save();
-                drupal_set_message('Nid: '.$node->id().' - Created new article');
+                drupal_set_message('Nid: '.$node->id().', name: "' . $data['title'] . '" - Created new article', 'success');
             }
             else
             {
@@ -260,7 +260,7 @@ class J3Articles extends ExampleForm
 
         }else
         {
-            drupal_set_message($data['ID'] . '(drupal nid: '.$node->id().') - skipped because was changed manually');
+            drupal_set_message($data['id'] . '(drupal nid: '.$node->id().') - skipped because was changed manually', 'warning');
         }
 
         // validate process errors
