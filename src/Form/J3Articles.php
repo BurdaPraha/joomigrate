@@ -166,17 +166,6 @@ class J3Articles extends ExampleForm
             // have a gallery?
             $find_gallery = Helper::findGalleryImagesInString($data['fulltext']);
 
-            if (count($find_gallery) > 1)
-            {
-                // respect pseudo-json format
-                $string   = str_replace('"', "'", $find_gallery);
-                $gallery  = json_encode($string);
-
-                $gallery = MediaFactory::gallery($data['title'], $gallery, $data['alias'], (int)$data['id'], (int)$user_id);
-                $paragraphs[] = $gallery;
-            }
-
-
             // Teaser media
             if(count($find_gallery) >= 1)
             {
@@ -187,6 +176,20 @@ class J3Articles extends ExampleForm
                         'target_id' => $media->id(),
                     ];
                 }
+            }
+
+            // more than teaser photo, create gallery
+            if (count($find_gallery) > 1)
+            {
+                // unset first photo (is already used as teaser)
+                unset($find_gallery[0]);
+
+                // respect pseudo-json format
+                $string   = str_replace('"', "'", $find_gallery);
+                $gallery  = json_encode($string);
+
+                $gallery = MediaFactory::gallery('Galerie: ' . $data['title'], $gallery, $data['alias'], (int)$data['id'], (int)$user_id);
+                $paragraphs[] = $gallery;
             }
 
 
