@@ -298,7 +298,7 @@ class Helper
             $d->appendChild($d->importNode($node, true));
             $d->replaceChild($d->firstChild->firstChild, $d->firstChild);
 
-            $gallery[$slide]['description'] = $d->saveHTML();
+            $gallery[$slide]['description'] = trim($d->saveHTML());
         }
 
 

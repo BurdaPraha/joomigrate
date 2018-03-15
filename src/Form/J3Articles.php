@@ -168,7 +168,11 @@ class J3Articles extends ExampleForm
 
             if (count($find_gallery) > 1)
             {
-                $gallery = MediaFactory::gallery($data['title'], $find_gallery, $data['alias'], (int)$data['id'], (int)$user_id);
+                // respect pseudo-json format
+                $string   = str_replace('"', "'", $find_gallery);
+                $gallery  = json_encode($string);
+
+                $gallery = MediaFactory::gallery($data['title'], $gallery, $data['alias'], (int)$data['id'], (int)$user_id);
                 $paragraphs[] = $gallery;
             }
 
@@ -249,13 +253,6 @@ class J3Articles extends ExampleForm
 
                 }
             }
-
-
-            echo "<pre>";
-            var_dump($paragraphs);
-            echo "</pre>";
-            die;
-
 
             // save paragraphs
             $node->set('field_paragraphs', $paragraphs);

@@ -41,12 +41,12 @@ class MediaFactory
             }
         }
 
-
         /*** create new gallery ****/
         // fix json from CSV import
         $string   = str_replace("'", '"', $pseudoJson);
         $gallery  = json_decode($string);
         $images   = [];
+
 
         if(count($gallery) > 0)
         {
