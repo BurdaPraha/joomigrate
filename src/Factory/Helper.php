@@ -259,6 +259,9 @@ class Helper
      */
     public static function findGalleryImagesInString($string)
     {
+        $string = html_entity_decode($string);
+        $string = mb_convert_encoding($string, 'HTML-ENTITIES', "UTF-8");
+
         $gallery = [];
         $slides = 0;
 

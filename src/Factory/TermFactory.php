@@ -62,6 +62,15 @@ class TermFactory
         {
             // use existing
             $term = end($existing);
+
+            // update sync id if existing without it (manually created)
+            if($sync_field > 0)
+            {
+                $term->set(self::$sync_field_channel, $sync_field);
+                $term->save();
+                drupal_set_message('tid: ' . $term->id() . ', name: ' . $name . ' - added sync_id: ' . $sync_field);
+            }
+
             drupal_set_message('tid: ' . $term->id() . ', name: ' . $name . ' - Used existing channel');
         }
         else

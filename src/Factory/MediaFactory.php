@@ -4,7 +4,6 @@ namespace Drupal\joomigrate\Factory;
 
 use Drupal\media_entity\Entity\Media;
 use Drupal\image\Entity\ImageStyle;
-use Drupal\joomigrate\Factory\FileFactory;
 use Drupal\paragraphs\Entity\Paragraph;
 
 class MediaFactory
@@ -25,7 +24,7 @@ class MediaFactory
         /*** Check existing gallery ****/
         $galleryExisting = \Drupal::entityQuery('media')
             ->condition('bundle', 'gallery')
-            ->condition('uid', $user_id)
+            ->condition('field_gallery_joomigrate_id', $article_id)
             ->condition('name', $name)
             ->execute();
 
@@ -53,7 +52,12 @@ class MediaFactory
         {
             foreach($gallery as $key => $image)
             {
-                $media = self::image($image->filename, (!empty($image->description) ? $image->description : $image->title), '', $user_id, $image->dirId);
+                // if image don't have any id, create pseudo sync number
+                $img_sync_id = isset($image->dirId) ? $image->dirId : ($article_id * 33 + $key);
+
+                // create
+                $media = self::image($image->filename, (!empty($image->description) ? $image->description : $image->title), '', $user_id, $img_sync_id);
+
                 if($media)
                 {
                     $images[] = [ // $image->ordering
@@ -92,7 +96,7 @@ class MediaFactory
             $gallery_paragraph->isNew();
             $gallery_paragraph->save();
 
-            // todo: gallery path auto alias
+            // @todo: gallery path auto alias
             return ['target_id' => $gallery_paragraph->id(), 'target_revision_id' => $gallery_paragraph->getRevisionId()];
         }
 
@@ -127,6 +131,7 @@ class MediaFactory
         {
             $media_exist = \Drupal::entityQuery('media')
                 ->condition('field_image.target_id', end($file_exist))
+                ->condition('field_joomigrate_id', $import_id, '=')
                 ->execute();
 
             if(end($media_exist))
