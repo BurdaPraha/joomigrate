@@ -195,6 +195,7 @@ class J3Articles extends ExampleForm
             if (false == $node)
             {
                 $node = Node::create($values);
+                $node->save();
                 drupal_set_message('Nid: '.$node->id().' - Created new article');
             }
             else
