@@ -133,11 +133,12 @@ class ExampleForm extends FormBase
         ];
 
         $form['header'] = [
-            '#type' => 'radio',
+            '#type' => 'radios',
             '#options' => [
                 0 => '<span>' . t('Skip first row') . '</span>',
                 1 => '<span>' . t('Use first row as Header') . '</span>',
             ],
+            '#default_value' => 0,
             '#title' => t('Use first row as Header'),
         ];
 
