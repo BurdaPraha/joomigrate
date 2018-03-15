@@ -64,8 +64,8 @@ class J3Articles extends ExampleForm
             'hits',
             'metadata',
             'featured',
-            //'language',
-            //'xreference',
+            'language',
+            'xreference',
         ];
     }
 

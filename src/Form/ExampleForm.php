@@ -231,6 +231,7 @@ class ExampleForm extends FormBase
         $error_msg      = '';
         $valid_csv      = false;
         $form_values    = $form_state->getValues();
+        $header_value   = (int)$form_values['header'];
         $file_path      = $form_values['file_upload']->getFileUri();
         $handle         = fopen($file_path, 'r');
 
@@ -249,23 +250,22 @@ class ExampleForm extends FormBase
         ];
 
 
-        if((int)$form_values['header'])
+        if(0 == $header_value)
         {
+            bdump('pouzit z class');
             $headers = $this->getCsvHeaders();
         }else {
+            bdump('pouzit z csv');
             $headers = fgetcsv($handle, 1000, ';');
         }
 
         $counter = 0;
-        while ($row = fgetcsv($handle, 1000, ','))
+        while ($row = fgetcsv($handle, 1000, ';'))
         {
-            //if(1 === (int)$form_values['header_skip']) {
-                //continue;
-            //}
-
-            bdump($row, 'row');
-            bdump($headers, 'headers');
-            die;
+            if(0 === $header_value && 0 === $counter) {
+                ++$counter;
+                continue;
+            }
 
             // checking if column from csv and row match
             if (count($row) > 0 && (count($headers) == count($row)))
