@@ -57,8 +57,8 @@ function drush_joomigrate_post_delete_articles()
 {
     $siz = \Drupal::entityQuery('node')
         ->condition('type', 'article')
-        ->exists('field_joomla_id')
-        ->condition('field_joomla_id', 0, '>')
+        ->exists('field_joomigrate_id')
+        ->condition('field_joomigrate_id', 0, '>')
         ->count()
         ->execute();
 
@@ -66,8 +66,8 @@ function drush_joomigrate_post_delete_articles()
     {
         $ids = \Drupal::entityQuery('node')
             ->condition('type', 'article')
-            ->exists('field_joomla_id')
-            ->condition('field_joomla_id', 0, '>')
+            ->exists('field_joomigrate_id')
+            ->condition('field_joomigrate_id', 0, '>')
             ->range(0, 10)
             ->execute();
 
@@ -76,7 +76,7 @@ function drush_joomigrate_post_delete_articles()
         }
     }
 
-    drush_print('All articles with `field_joomla_id` was deleted!');
+    drush_print('All articles with `field_joomigrate_id` was deleted!');
 }
 
 
@@ -89,14 +89,14 @@ function drush_joomigrate_post_delete_channels()
 {
     $ids = \Drupal::entityQuery('taxonomy_term')
         ->condition('vid', 'channel')
-        ->exists('field_joomla_id')
-        ->condition('field_joomla_id', 0, '>')
+        ->exists('field_joomigrate_id')
+        ->condition('field_joomigrate_id', 0, '>')
         ->execute();
 
     if(count($ids) > 0){
         entity_delete_multiple('taxonomy_term', $ids);
     }
-    drush_print('All channels with `field_joomla_id` was deleted!');
+    drush_print('All channels with `field_joomigrate_id` was deleted!');
 }
 
 
@@ -109,14 +109,14 @@ function drush_joomigrate_post_delete_tags()
 {
     $ids = \Drupal::entityQuery('taxonomy_term')
         ->condition('vid', 'tags')
-        ->exists('field_tag_joomla_id')
-        ->condition('field_tag_joomla_id', 0, '>')
+        ->exists('field_tag_joomigrate_id')
+        ->condition('field_tag_joomigrate_id', 0, '>')
         ->execute();
 
     if(count($ids) > 0){
         entity_delete_multiple('taxonomy_term', $ids);
     }
-    drush_print('All tags with `field_tag_joomla_id` was deleted!');
+    drush_print('All tags with `field_tag_joomigrate_id` was deleted!');
 }
 
 
@@ -129,8 +129,8 @@ function drush_joomigrate_post_delete_images()
 {
     $siz = \Drupal::entityQuery('media')
         ->condition('bundle', 'image')
-        ->exists('field_joomla_id')
-        ->condition('field_joomla_id', 0, '>')
+        ->exists('field_joomigrate_id')
+        ->condition('field_joomigrate_id', 0, '>')
         ->count()
         ->execute();
 
@@ -138,8 +138,8 @@ function drush_joomigrate_post_delete_images()
     {
         $ids = \Drupal::entityQuery('media')
             ->condition('bundle', 'image')
-            ->exists('field_joomla_id')
-            ->condition('field_joomla_id', 0, '>')
+            ->exists('field_joomigrate_id')
+            ->condition('field_joomigrate_id', 0, '>')
             ->range(0, 10)
             ->execute();
 
@@ -148,7 +148,7 @@ function drush_joomigrate_post_delete_images()
         }
     }
 
-    drush_print('All images with `field_joomla_id` was deleted!');
+    drush_print('All images with `field_joomigrate_id` was deleted!');
 }
 
 
@@ -161,8 +161,8 @@ function drush_joomigrate_post_delete_galleries()
 {
     $siz = \Drupal::entityQuery('media')
         ->condition('bundle', 'gallery')
-        ->exists('field_gallery_joomla_id')
-        ->condition('field_gallery_joomla_id', 0, '>')
+        ->exists('field_gallery_joomigrate_id')
+        ->condition('field_gallery_joomigrate_id', 0, '>')
         ->count()
         ->execute();
 
@@ -170,8 +170,8 @@ function drush_joomigrate_post_delete_galleries()
     {
         $ids = \Drupal::entityQuery('media')
             ->condition('bundle', 'gallery')
-            ->exists('field_gallery_joomla_id')
-            ->condition('field_gallery_joomla_id', 0, '>')
+            ->exists('field_gallery_joomigrate_id')
+            ->condition('field_gallery_joomigrate_id', 0, '>')
             ->range(0, 10)
             ->execute();
 
@@ -180,7 +180,7 @@ function drush_joomigrate_post_delete_galleries()
         }
     }
 
-    drush_print('All galleries with `field_joomla_id` was deleted!');
+    drush_print('All galleries with `field_joomigrate_id` was deleted!');
 }
 
 
@@ -192,8 +192,8 @@ function drush_joomigrate_post_delete_galleries()
 function drush_joomigrate_post_delete_authors()
 {
     $ids = \Drupal::entityQuery('user')
-        ->exists('field_joomla_id')
-        ->condition('field_joomla_id', 0, '>')
+        ->exists('field_joomigrate_id')
+        ->condition('field_joomigrate_id', 0, '>')
         ->condition('field_first_name', '')
         ->condition('field_last_name', '')
         ->execute();
@@ -203,7 +203,7 @@ function drush_joomigrate_post_delete_authors()
     if(count($ids) > 0){
         entity_delete_multiple('media', $ids);
     }
-    drush_print('All authors with `field_joomla_id` was deleted!');
+    drush_print('All authors with `field_joomigrate_id` was deleted!');
 }
 
 
