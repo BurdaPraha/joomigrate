@@ -88,7 +88,7 @@ class J3Articles extends ExampleForm
         $user       = new UserFactory();
 
         // if not been manually edited
-        if(null == $node || $node->changed->value == $created->getTimestamp())
+        if(null == $node || true)
         {
             // find or create author
             $user_col = $data['created_by'];
@@ -140,9 +140,9 @@ class J3Articles extends ExampleForm
 
                 // times
                 'created'           => $created->getTimestamp(),
-                'changed'           => $created->getTimestamp(),
-                'publish_on'        => $status ? $publish->getTimestamp() : null,
-                'publish_down'      => $down->getTimestamp(),
+                //'changed'           => $created->getTimestamp(),
+                //'publish_on'        => $status ? $publish->getTimestamp() : null,
+                //'publish_down'      => $down->getTimestamp(),
 
                 // category
                 'field_channel'     => [
