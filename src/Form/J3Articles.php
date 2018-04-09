@@ -87,7 +87,7 @@ class J3Articles extends ExampleForm
         $down       = new \DateTime($data['publish_down']);
         $user       = new UserFactory();
 
-        // if not been manually edited, @todo: check it better
+        // if not been manually edited
         if(null == $node || true)
         {
             // find or create author
@@ -120,10 +120,10 @@ class J3Articles extends ExampleForm
 
 
             // is article public?
-            $status = trim($data['state']);
-            $channel = TermFactory::channel((int)$data['catid'], $data['catid']);
-            $pre_perex = Helper::getDivContent($data['fulltext'], 'article-perex');
-            $perex = strip_tags($pre_perex);
+            $status         = trim($data['state']);
+            $channel        = TermFactory::channel((int)$data['catid'], $data['catid']);
+            $pre_perex      = Helper::getDivContent($data['fulltext'], 'article-perex');
+            $perex          = strip_tags($pre_perex);
 
             // setup basic values
             $values = [
@@ -161,6 +161,14 @@ class J3Articles extends ExampleForm
 
             // sync
             $values[$article->sync_field_name] = $data['id'];
+
+
+            // main content
+            $full_text = Helper::getDivContent($data['fulltext'], 'article-fulltext');
+            $text = ParagraphFactory::createText($full_text, $user_id, $data['id']);
+            if($text){
+                $paragraphs[] = $text;
+            }
 
 
             // have a gallery?
@@ -218,19 +226,6 @@ class J3Articles extends ExampleForm
             }
 
 
-            // use existing alias, @todo: test it!
-            $path = Helper::articleAlias($data['alias'], $node->id(), 'cs');
-            $node->set('path', $path['path']);
-
-
-            // main content
-            $full_text = Helper::getDivContent($data['fulltext'], 'article-fulltext');
-            $text = ParagraphFactory::createText($full_text, $user_id, $data['id']);
-            if($text){
-                $paragraphs[] = $text;
-            }
-
-
             // have a video?
             $about_video = Helper::checkEasyMatch([
                 $data['title'],
@@ -256,6 +251,10 @@ class J3Articles extends ExampleForm
 
                 }
             }
+
+            // use existing alias, @todo: test it!
+            $path = Helper::articleAlias($data['alias'], $node->id(), 'cs');
+            $node->set('path', $path['path']);
 
             // save paragraphs
             $node->set('field_paragraphs', $paragraphs);

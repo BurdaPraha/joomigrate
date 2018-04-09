@@ -28,7 +28,7 @@ class ParagraphFactory
             ];
 
             //
-            // test image
+            // image
             //
             if(strpos($val, '<img') !== false) {
                 $element['type'] = 'image';
@@ -40,7 +40,7 @@ class ParagraphFactory
 
 
             //
-            // test embeds
+            // embeds
             //
             if(strpos($val, '<iframe') !== false) {
 
@@ -60,7 +60,24 @@ class ParagraphFactory
             }
 
             //
-            // test legacy youtube
+            // scripts
+            //
+            if(strpos($val, '<script') !== false) {
+
+                //
+                // video.js player
+                //
+                if (preg_match("#'src': '(.*?)'#", $val, $matches))
+                {
+                    if(strpos($val, 'mp4') !== false) {
+                        $element['type'] = 'video';
+                        $element['val'] = $matches[1];
+                    }
+                }
+            }
+
+            //
+            // legacy youtube
             //
             if(strpos($val, '<object') !== false) {
                 //<param name="movie" value="http://www.youtube.com/v/IpbDHxCV29A" />

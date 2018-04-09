@@ -1,6 +1,27 @@
 <?php
 
+use Drupal\Core\Form\FormStateInterface;
+
 /**
- * @file
- * Intentionnaly left empty.
+ * Editors can't change value for sync fields
+ * @param $form
+ * @param FormStateInterface $form_state
+ * @param $form_id
  */
+function joomigrate_form_alter(&$form, FormStateInterface &$form_state, $form_id)
+{
+    $sync_fields = [
+        'node_article_edit_form'        => 'field_joomigrate_id',
+        'media_image_edit_form'         => 'field_joomigrate_id',
+        'media_gallery_edit_form'       => 'field_gallery_joomigrate_id',
+        'taxonomy_term_channel_form'    => 'field_joomigrate_id',
+        'taxonomy_term_tags_form'       => 'field_joomigrate_tag_id',
+        'user_form'                     => 'field_joomigrate_id',
+    ];
+
+    foreach($sync_fields as $f => $s) {
+        if($form_id == $f && isset($form[$s])){
+            $form[$s]['widget'][0]['value']['#attributes']['disabled'] = 'disabled';
+        }
+    }
+}
