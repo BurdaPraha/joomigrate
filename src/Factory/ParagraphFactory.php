@@ -6,6 +6,93 @@ use Drupal\paragraphs\Entity\Paragraph;
 
 class ParagraphFactory
 {
+
+
+    /**
+     * Convert base text to associative array of text elements and image (text, image, text)
+     * in correct order as in input string. To be used as each paragraph types;
+     * @param $string
+     * @return array
+     */
+    public static function parseStringToParagraphsTypes($string)
+    {
+        $paragraphs = [];
+
+        $chars = preg_split('/(<[^>]*[^\/]>)/i', $string, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+        foreach ($chars as $key => $val)
+        {
+            // default
+            $element = [
+                'type'  => 'text',
+                'val'   => $val
+            ];
+
+            //
+            // test image
+            //
+            if(strpos($val, '<img') !== false) {
+                $element['type'] = 'image';
+            }
+
+            //
+            // @todo: there can be video or another paragraph type ... or shortcode fabric
+            //
+
+
+            //
+            // test embeds
+            //
+            if(strpos($val, '<iframe') !== false) {
+
+
+                //
+                // video
+                //
+                // <iframe frameborder="0" src="https://www.youtube.com/embed/1yFmYi7HdCo" width="600px" height="380px"></iframe>
+                $element['type'] = 'youtube';
+
+
+                //
+                //
+                //
+
+
+            }
+
+            //
+            // test legacy youtube
+            //
+            if(strpos($val, '<object') !== false) {
+                //<param name="movie" value="http://www.youtube.com/v/IpbDHxCV29A" />
+            }
+
+
+
+            //
+            // merge with the last paragraph if there isn't necessary creating new type
+            //
+            $keys       = array_keys($paragraphs);
+            $last_key   = end($keys);
+
+            if(
+                count($paragraphs) > 0 &&
+                'text' == $paragraphs[$last_key]['type'] &&
+                'text' == $element['type'])
+            {
+                $key            = $last_key;
+                $element['val'] = $paragraphs[$last_key]['val'] . $element['val'];
+            }
+
+            //
+            // store
+            //
+            $paragraphs[$key] = $element;
+        }
+
+
+        return $paragraphs;
+    }
+
     /**
      * @param $data
      * @param int $user_id
@@ -14,8 +101,6 @@ class ParagraphFactory
     public static function make($data, $user_id = 1, $article_id)
     {
         //{{contest}}18{{/contest}} Otestujte revoluční novinku na omlazení pleti!
-
-
         // http://marianne-thunder.dev:8888/clanek/5-vanocnich-pisnicek-se-kterymi-si-vykouzlite-ty-nejkrasnejsi-svatky
 
         // inline images replacing

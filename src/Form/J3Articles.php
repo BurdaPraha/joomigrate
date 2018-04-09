@@ -87,7 +87,7 @@ class J3Articles extends ExampleForm
         $down       = new \DateTime($data['publish_down']);
         $user       = new UserFactory();
 
-        // if not been manually edited
+        // if not been manually edited, @todo: check it better
         if(null == $node || true)
         {
             // find or create author

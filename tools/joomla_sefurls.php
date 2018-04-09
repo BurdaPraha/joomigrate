@@ -1,4 +1,7 @@
 <?php
+//
+// Move aliases & tags from SEF component to content table for better exporting to CSV
+//
 
 // variables
 $servername = "localhost";
@@ -6,9 +9,8 @@ $username   = "root";
 $password   = "root";
 $dbname     = "your-joomla-databse";
 $prefix     = "your-joomla-database-prefix";
-
-// Create connection
-$table      = $prefix . "_sefurls";
+$t_sef      = "{$prefix}_sefurls";
+$t_content  = "{$prefix}_content";
 $conn       = new mysqli($servername, $username, $password, $dbname);
 
 // Check connection
@@ -16,14 +18,15 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Fix schema
-$alter = "ALTER TABLE " . $prefix . " `_sefurls` ADD `content_id` int NOT NULL;";
-$result = $conn->query($alter);
+// count before
+$missing_sql = "SELECT title, alias, created FROM jos_content WHERE alias BETWEEN '2001-01-02-12-32-26' AND '2019-01-02-12-32-26' ORDER BY created DESC";
+$check_missing = $conn->query($missing_sql);
+echo "- MISSING ALIASES: {$check_missing->num_rows} \n";
 
-// Query
-$sql = "SELECT sefurl, origurl, metakey FROM " . $table . " WHERE cpt > 0 AND enabled = 1 ORDER BY id DESC";
-$result = $conn->query($sql);
+// Custom pair column for easy pairs
+$fix = $conn->query("ALTER TABLE `{$t_sef}` ADD `content_id` int NOT NULL;");
 
+$result = $conn->query("SELECT sefurl, origurl, metakey, content_id FROM `{$t_sef}` WHERE cpt > 0 AND enabled = 1 ORDER BY id DESC");
 if ($result->num_rows > 0)
 {
     // output data of each row
@@ -36,7 +39,7 @@ if ($result->num_rows > 0)
         $metakey    = $row['metakey'];
 
         if (strpos($params, '&limitstart') !== false || strpos($params, '&plugin=') !== false) {
-            //$sql = "UPDATE " . $table . " SET content_id=0 WHERE origurl='" . $params . "'";
+            //$sql = "UPDATE `{$t_sef}` SET content_id=0 WHERE origurl='" . $params . "'";
             //$conn->query($sql);
             continue;
         }
@@ -47,23 +50,31 @@ if ($result->num_rows > 0)
             $id = (int) $id[0];
         }
 
-        if($id > 0)
-        {
-            // add ID for relation
-            $conn->query("UPDATE " . $table . " SET content_id={$id} WHERE origurl='{$params}'");
+        if($id > 0) {
+            // add ID for better search
+            $conn->query("UPDATE `{$t_sef}` SET content_id={$id} WHERE origurl='{$params}'");
 
             // update content
-            $conn->query("UPDATE {$prefix}_content SET alias='{$alias}', metakey='{$metakey}' WHERE id={$id}");
-
+            $conn->query("UPDATE `{$t_content}` SET alias='{$alias}', metakey='{$metakey}' WHERE id={$id}");
             ++$up;
         }
     }
 
-    echo "\n";
-    echo "UPDATED {$up} ITEMS";
-    echo "\n";
+    // affected rows
+    echo "- UPDATED ROWS: {$up}\n";
 
-} else
+    // count after
+    $check_missing = $conn->query($missing_sql);
+    echo "- MISSING ALIASES: {$check_missing->num_rows}\n";
+
+    echo "-- CREATED | ALIAS | TITLE\n";
+    while($row = $check_missing->fetch_assoc())
+    {
+        echo "-- {$row['created']} | {$row['alias']} | {$row['title']}\n";
+    }
+
+}
+else
 {
     echo "0 results";
 }
