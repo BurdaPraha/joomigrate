@@ -16,8 +16,6 @@ function joomigrate_drush_command()
     ];
     $items['delete-articles'] = [
         'description'           => 'It will delete all imported articles from database',
-        'drupal dependencies'   => ['joomigrate'],
-        'aliases'               => ['joomigrate:delete-articles'],
     ];
     $items['delete-authors'] = [
         'description'           => 'It will delete all imported authors from database',
@@ -53,7 +51,7 @@ function joomigrate_drush_command()
  * The call back function name in the  following format
  *   drush_{module_name}_{item_id_for_command}()
  */
-function drush_joomigrate_post_delete_articles()
+function drush_joomigrate_delete_articles()
 {
     $siz = \Drupal::entityQuery('node')
         ->condition('type', 'article')
@@ -85,7 +83,7 @@ function drush_joomigrate_post_delete_articles()
  * The call back function name in the  following format
  *   drush_{module_name}_{item_id_for_command}()
  */
-function drush_joomigrate_post_delete_channels()
+function drush_joomigrate_delete_channels()
 {
     $ids = \Drupal::entityQuery('taxonomy_term')
         ->condition('vid', 'channel')
@@ -105,12 +103,12 @@ function drush_joomigrate_post_delete_channels()
  * The call back function name in the  following format
  *   drush_{module_name}_{item_id_for_command}()
  */
-function drush_joomigrate_post_delete_tags()
+function drush_joomigrate_delete_tags()
 {
     $ids = \Drupal::entityQuery('taxonomy_term')
         ->condition('vid', 'tags')
-        ->exists('field_tag_joomigrate_id')
-        ->condition('field_tag_joomigrate_id', 0, '>')
+        ->exists('field_joomigrate_tag_id')
+        ->condition('field_joomigrate_tag_id', 0, '>')
         ->execute();
 
     if(count($ids) > 0){
@@ -125,7 +123,7 @@ function drush_joomigrate_post_delete_tags()
  * The call back function name in the  following format
  *   drush_{module_name}_{item_id_for_command}()
  */
-function drush_joomigrate_post_delete_images()
+function drush_joomigrate_delete_images()
 {
     $siz = \Drupal::entityQuery('media')
         ->condition('bundle', 'image')
@@ -157,7 +155,7 @@ function drush_joomigrate_post_delete_images()
  * The call back function name in the  following format
  *   drush_{module_name}_{item_id_for_command}()
  */
-function drush_joomigrate_post_delete_galleries()
+function drush_joomigrate_delete_galleries()
 {
     $siz = \Drupal::entityQuery('media')
         ->condition('bundle', 'gallery')
@@ -189,7 +187,7 @@ function drush_joomigrate_post_delete_galleries()
  * The call back function name in the  following format
  *   drush_{module_name}_{item_id_for_command}()
  */
-function drush_joomigrate_post_delete_authors()
+function drush_joomigrate_delete_authors()
 {
     $ids = \Drupal::entityQuery('user')
         ->exists('field_joomigrate_id')
@@ -212,12 +210,12 @@ function drush_joomigrate_post_delete_authors()
  * The call back function name in the  following format
  *   drush_{module_name}_{item_id_for_command}()
  */
-function drush_joomigrate_post_delete_all()
+function drush_joomigrate_delete_all()
 {
-    drush_joomigrate_post_delete_articles();
-    drush_joomigrate_post_delete_channels();
-    drush_joomigrate_post_delete_tags();
-    drush_joomigrate_post_delete_images();
-    drush_joomigrate_post_delete_galleries();
-    drush_joomigrate_post_delete_authors();
+    drush_joomigrate_delete_articles();
+    drush_joomigrate_delete_channels();
+    drush_joomigrate_delete_tags();
+    drush_joomigrate_delete_images();
+    drush_joomigrate_delete_galleries();
+    drush_joomigrate_delete_authors();
 }
