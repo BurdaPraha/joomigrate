@@ -6,17 +6,15 @@ use Drupal\paragraphs\Entity\Paragraph;
 
 class ParagraphFactory
 {
-
-
     /**
      * Convert base text to associative array of text elements and image (text, image, text)
      * in correct order as in input string. To be used as each paragraph types;
      * @param $string
      * @return array
      */
-    public static function parseStringToParagraphsTypes($string)
+    public static function parseTypes($string)
     {
-        $paragraphs = [];
+        $t = [];
 
         $chars = preg_split('/(<[^>]*[^\/]>)/i', $string, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
         foreach ($chars as $key => $val)
@@ -27,137 +25,112 @@ class ParagraphFactory
                 'val'   => $val
             ];
 
-            //
-            // image
-            //
+            // inline-image
             if(strpos($val, '<img') !== false) {
                 $element['type'] = 'image';
             }
 
-            //
-            // @todo: there can be video or another paragraph type ... or shortcode fabric
-            //
-
-
-            //
             // embeds
-            //
             if(strpos($val, '<iframe') !== false) {
 
-
-                //
-                // video
-                //
-                // <iframe frameborder="0" src="https://www.youtube.com/embed/1yFmYi7HdCo" width="600px" height="380px"></iframe>
-                $element['type'] = 'youtube';
-
-
-                //
-                //
-                //
-
-
-            }
-
-            //
-            // scripts
-            //
-            if(strpos($val, '<script') !== false) {
-
-                //
-                // video.js player
-                //
-                if (preg_match("#'src': '(.*?)'#", $val, $matches))
-                {
-                    if(strpos($val, 'mp4') !== false) {
-                        $element['type'] = 'video';
-                        $element['val'] = $matches[1];
-                    }
+                // youtube / vimeo
+                if(strpos($val, 'youtube') !== false || strpos($val, 'vimeo') !== false) {
+                    $element['type'] = 'video';
                 }
             }
 
-            //
-            // legacy youtube
-            //
-            if(strpos($val, '<object') !== false) {
-                //<param name="movie" value="http://www.youtube.com/v/IpbDHxCV29A" />
-            }
-
-
-
-            //
             // merge with the last paragraph if there isn't necessary creating new type
-            //
-            $keys       = array_keys($paragraphs);
+            $keys       = array_keys($t);
             $last_key   = end($keys);
 
             if(
-                count($paragraphs) > 0 &&
-                'text' == $paragraphs[$last_key]['type'] &&
+                count($t) > 0 &&
+                'text' == $t[$last_key]['type'] &&
                 'text' == $element['type'])
             {
                 $key            = $last_key;
-                $element['val'] = $paragraphs[$last_key]['val'] . $element['val'];
+                $element['val'] = $t[$last_key]['val'] . $element['val'];
             }
 
-            //
             // store
-            //
-            $paragraphs[$key] = $element;
+            $t[$key] = $element;
         }
 
 
-        return $paragraphs;
+        return $t;
     }
 
+
     /**
+     * make paragraphs array
      * @param $data
      * @param int $user_id
-     * @return array
+     * @param $article_id
+     * @return array|mixed
      */
-    public static function make($data, $user_id = 1, $article_id)
+    public static function make($data, $user_id = 1, $article_id = 1)
     {
-        //{{contest}}18{{/contest}} Otestujte revoluční novinku na omlazení pleti!
-        // http://marianne-thunder.dev:8888/clanek/5-vanocnich-pisnicek-se-kterymi-si-vykouzlite-ty-nejkrasnejsi-svatky
+        $p = [];
+        $types = self::parseTypes($data);
 
-        // inline images replacing
-        $data = MediaFactory::replaceInlineMedia($data, $user_id = 1, $article_id);
+        foreach ($types as $p)
+        {
+            switch ($p['type'])
+            {
+                case 'text':
+                    $p[] = self::createText($p['val'], $user_id);
+                    break;
 
-        // clear ugly code
-        $value = str_replace("{{gallery}}", "", $data);
+                case 'image':
+                    $i = MediaFactory::replaceInlineMedia($p['val'], $user_id, $article_id);
+                    array_merge($p, $i);
+                    break;
 
-        // save
-        $paragraph = Paragraph::create([
-            'id'          => NULL,
-            'type'        => 'text',
-            'uid'         => $user_id,
-            'field_text'  => [
-                'value'   => $value,
-                'format' => 'full_html',
-            ],
-        ]);
-        $paragraph->isNew();
-        $paragraph->save();
+                case 'video':
+                    if (preg_match('#src="(.*?)"#', $p['val'], $matches)) {
+                        $i = VideoFactory::createEmbedFromSrc($matches[1], $user_id);
+                        array_merge($p, $i);
+                    }
+                    break;
+            }
+
+        }
 
 
-        return ['target_id' => $paragraph->id(), 'target_revision_id' => $paragraph->getRevisionId()];
+        return $p;
     }
 
 
     /**
      * @param $string
      * @param $user_id
-     * @param $node_id
      * @return array|null
      */
-    public static function createText($string, $user_id, $node_id)
+    public static function createText($string, $user_id)
     {
         $p = null;
-
         if(!empty($string) && strlen(strip_tags($string)) > 10)
         {
-            $p = self::make($string, $user_id, $node_id);
+            // save
+            $paragraph = Paragraph::create([
+                'id'          => NULL,
+                'type'        => 'text',
+                'uid'         => $user_id,
+                'field_text'  => [
+                    'value'   => $string,
+                    'format' => 'full_html',
+                ],
+            ]);
+            $paragraph->isNew();
+            $paragraph->save();
+
+
+            $p = [
+                'target_id' => $paragraph->id(),
+                'target_revision_id' => $paragraph->getRevisionId()
+            ];
         }
+
 
         return $p;
     }

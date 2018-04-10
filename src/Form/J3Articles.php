@@ -128,34 +128,20 @@ class J3Articles extends ExampleForm
             // setup basic values
             $values = [
                 'type'              => 'article',
-                //'langcode'          => 'cs',
+                'langcode'          => 'cs',
                 'promote'           => 1,
-
-                // visible?
                 "status"            => $status,
-
-                // titles
                 'title'             => Helper::entityToString($data['title']),
                 'field_seo_title'   => Helper::entityToString($data['title']),
-
-                // times
                 'created'           => $created->getTimestamp(),
+                'publish_on'        => $status ? $publish->getTimestamp() : null,
+                'publish_down'      => $down->getTimestamp(),
                 //'changed'           => $created->getTimestamp(),
-                //'publish_on'        => $status ? $publish->getTimestamp() : null,
-                //'publish_down'      => $down->getTimestamp(),
-
-                // category
                 'field_channel'     => [
                     'target_id' => $channel->id()
                 ],
-
-                // author
                 'uid'                 => $user_id,
-
-                // meta tags
                 'description'         => strip_tags($perex),
-
-                // perex
                 'field_teaser_text'   => trim(html_entity_decode($perex))
             ];
 
@@ -165,18 +151,14 @@ class J3Articles extends ExampleForm
 
             // main content
             $full_text = Helper::getDivContent($data['fulltext'], 'article-fulltext');
-            $text = ParagraphFactory::createText($full_text, $user_id, $data['id']);
-            if($text){
-                $paragraphs[] = $text;
-            }
-
+            $full = ParagraphFactory::make($full_text, $user_id, $data['id']);
+            array_merge($paragraphs, $full);
 
             // have a gallery?
             $find_gallery = Helper::findGalleryImagesInString($data['fulltext']);
 
             // Teaser media
-            if(count($find_gallery) >= 1)
-            {
+            if(count($find_gallery) >= 1) {
                 $media = MediaFactory::image($find_gallery[0]['filename'], $data['title'], '', (int)$user_id, (int)$data['id']);
                 if($media)
                 {
@@ -186,7 +168,9 @@ class J3Articles extends ExampleForm
                 }
             }
 
-            // more than teaser photo, create gallery
+            //
+            // More than teaser photo? Create gallery
+            //
             if (count($find_gallery) > 1)
             {
                 // unset first photo (is already used as teaser)
@@ -196,8 +180,8 @@ class J3Articles extends ExampleForm
                 $string   = str_replace('"', "'", $find_gallery);
                 $gallery  = json_encode($string);
 
-                $gallery = MediaFactory::gallery('Galerie: ' . $data['title'], $gallery, $data['alias'], (int)$data['id'], (int)$user_id);
-                $paragraphs[] = $gallery;
+                $gallery = MediaFactory::gallery($data['title'], $gallery, $data['alias'], (int)$data['id'], (int)$user_id);
+                array_merge($paragraphs, $gallery);
             }
 
 
@@ -226,32 +210,6 @@ class J3Articles extends ExampleForm
             }
 
 
-            // have a video?
-            $about_video = Helper::checkEasyMatch([
-                $data['title'],
-                $data['introtext'],
-                $data['fulltext']
-            ], [
-                'video',
-                'Video',
-                'mp4',
-                'youtube'
-            ]);
-
-            if($about_video)
-            {
-                $mp4 = Helper::getVideoJSPath($data['fulltext']);
-                if($mp4) {
-
-                    $video = VideoFactory::createMp4($mp4, time() . '.mp4', $user_id);
-                    $paragraphs[] = [
-                        'target_id' => $video->id(),
-                        'target_revision_id' => $video->getRevisionId()
-                    ];
-
-                }
-            }
-
             // use existing alias, @todo: test it!
             $path = Helper::articleAlias($data['alias'], $node->id(), 'cs');
             $node->set('path', $path['path']);
@@ -259,11 +217,10 @@ class J3Articles extends ExampleForm
             // save paragraphs
             $node->set('field_paragraphs', $paragraphs);
 
-
             // save updated node
             $node->save();
-
-        }else
+        }
+        else
         {
             drupal_set_message($data['id'] . '(drupal nid: '.$node->id().') - skipped because was changed manually', 'warning');
         }

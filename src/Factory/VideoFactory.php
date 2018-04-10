@@ -22,26 +22,16 @@ class VideoFactory
             $mp4        = Helper::parseShortCode($video, 'mp4');
             $youtube    = Helper::parseShortCode($video, 'YouTube');
 
-            if($mp4)
-            {
+            if($mp4) {
                 // {mp4}29660{/mp4}
                 $video_paragraph = self::createMp4('media/k2/videos/' . $mp4 . '/', $mp4 . '.mp4', $user_id);
             }
+
             if($youtube)
             {
-                $youtube_id = Helper::parseYoutube($video);
-                if($youtube_id)
-                {
-                    $video_paragraph = Paragraph::create([
-                        'id'                => NULL,
-                        'type'              => 'video_youtube',
-                        'uid'               => $user_id,
-                        'field_youtube_id'  => $youtube_id
-                    ]);
-                    $video_paragraph->isNew();
-                    $video_paragraph->save();
-                }
+                //self::createEmbed();
             }
+
             if($video_paragraph)
             {
                 $paragraphs[] = [
@@ -56,6 +46,32 @@ class VideoFactory
 
 
     /**
+     * @param $string
+     * @param $user_id
+     * @return \Drupal\Core\Entity\EntityInterface|null|static
+     */
+    public static function createEmbedFromSrc($string, $user_id)
+    {
+        $e = null;
+        if($string)
+        {
+            $e = Paragraph::create([
+                'id'    => NULL,
+                'type'  => 'video',
+                'uid'   => $user_id,
+                'field_media_video_embed_field' => $string
+            ]);
+
+            $e->isNew();
+            $e->save();
+        }
+
+
+        return $e;
+    }
+
+
+    /**
      * @param $path
      * @param null $file_name
      * @param $user_id
@@ -63,13 +79,13 @@ class VideoFactory
      */
     public static function createMp4($path, $file_name = null, $user_id)
     {
-        $file   = FileFactory::make($path, $file_name, $user_id);
+        $file = FileFactory::make($path, $file_name, $user_id);
         $p = Paragraph::create([
             'id'          => NULL,
             'type'        => 'video',
             'uid'         => $user_id,
             'field_file'  => [
-                'target_id'   => $file->id
+                'target_id'   => $file->id()
             ],
         ]);
         $p->isNew();

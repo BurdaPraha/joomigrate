@@ -68,16 +68,16 @@ class Helper
      * @param $string
      * @return string
      */
-    public static function parseYoutube($string)
+    public static function parseEmbed($string)
     {
         // ["{YouTube}a0a6Y9JvPqo{\/YouTube}"]
         // ["{YouTube}http:\/\/ti.me\/1NxWIZZ{\/YouTube}","{YouTube}http:\/\/ti.me\/1Pk2QdH{\/YouTube}"]
         // ["{YouTube}https:\/\/www.youtube.com\/watch?v=20RoyFU4mjg{\/YouTube}"]
 
         preg_match("/^(?:http(?:s)?:\/\/)?(?:www\.)?(?:m\.)?(?:youtu\.be\/|youtube\.com\/(?:(?:watch)?\?(?:.*&)?v(?:i)?=|(?:embed|v|vi|user)\/))([^\?&\"'>]+)/", $string, $matches);
-        if(isset($matches[1]))
-        {
-            return $matches[1];
+
+        if(isset($matches[1])) {
+            return 'https://www.youtube.com/watch?v=' . $matches[1];
         }
         return null;
     }
@@ -229,6 +229,30 @@ class Helper
 
 
         return trim($result);
+    }
+
+
+    /**
+     * @param $data
+     * @return array|null
+     */
+    public static function imagesFromString($data)
+    {
+        $i = null;
+        $doc = new \DOMDocument();
+        $doc->loadHTML(mb_convert_encoding($data, 'HTML-ENTITIES', 'UTF-8'));
+        $images = $doc->getElementsByTagName('img');
+
+        if($images) {
+            foreach ($images as $img) {
+                $i[] = [
+                    'src'   => $img->getAttribute('src'),
+                    'alt'   => $img->getAttribute('alt') ? $img->getAttribute('alt') : '',
+                ];
+            }
+        }
+
+        return $i;
     }
 
 

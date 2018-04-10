@@ -171,39 +171,33 @@ class MediaFactory
      * @param $data
      * @param $user_id
      * @param $article_id
-     * @return string
+     * @return array
      */
     public static function replaceInlineMedia($data, $user_id, $article_id)
     {
-        $doc = new \DOMDocument();
-        $doc->loadHTML(mb_convert_encoding($data, 'HTML-ENTITIES', 'UTF-8'));
-        $images = $doc->getElementsByTagName('img');
+        $paragraphs = [];
 
-        if($images)
+        foreach (Helper::imagesFromString($data) as $img)
         {
-            foreach ($images as $img)
-            {
-                // get original url
-                $url = $img->getAttribute('src');
-                $alt = $img->getAttribute('alt') ? $img->getAttribute('alt') : '';
+            $media = self::image($img['src'], $img['alt'], "", $user_id, $article_id);
+            $p = Paragraph::create([
+                'id'          => NULL,
+                'type'        => 'image',
+                'uid'         => $user_id,
+                'field_image'  => [
+                    'target_id'   => $media->id(),
+                ],
+            ]);
+            $p->isNew();
+            $p->save();
 
-                // create media
-                // todo !
-                $media = self::image($url, $alt, "", $user_id, $article_id);
-
-                // replace path if media exist
-                if($media->field_image->entity)
-                {
-                    $src = ImageStyle::load('large')->buildUrl($media->field_image->entity->getFileUri());
-                    $img->setAttribute('src', $src);
-                }
-
-            }
-
-            $data = $doc->saveHTML();
+            $paragraphs[] = [
+                'target_id' => $p->id(),
+                'target_revision_id' => $p->getRevisionId()
+            ];
         }
 
 
-        return $data;
+        return $paragraphs;
     }
 }
