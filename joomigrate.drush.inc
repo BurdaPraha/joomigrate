@@ -11,37 +11,27 @@ function joomigrate_drush_command()
     $items = [];
     $items['delete-all'] = [
         'description'           => 'It will delete all imported stuffs',
-        'drupal dependencies'   => ['joomigrate'],
-        'aliases'               => ['joomigrate:delete-all'],
     ];
     $items['delete-articles'] = [
         'description'           => 'It will delete all imported articles from database',
     ];
     $items['delete-authors'] = [
         'description'           => 'It will delete all imported authors from database',
-        'drupal dependencies'   => ['joomigrate'],
-        'aliases'               => ['joomigrate:delete-authors'],
     ];
     $items['delete-channels'] = [
         'description'           => 'It will delete all imported channels from database',
-        'drupal dependencies'   => ['joomigrate'],
-        'aliases'               => ['joomigrate:delete-channels'],
     ];
     $items['delete-tags'] = [
         'description'           => 'It will delete all imported tags from database',
-        'drupal dependencies'   => ['joomigrate'],
-        'aliases'               => ['joomigrate:delete-tags'],
     ];
     $items['delete-images'] = [
         'description'           => 'It will delete all imported images from database, files not',
-        'drupal dependencies'   => ['joomigrate'],
-        'aliases'               => ['joomigrate:delete-images'],
     ];
     $items['delete-galleries'] = [
         'description'           => 'It will delete all imported galleries from database, files not',
-        'drupal dependencies'   => ['joomigrate'],
-        'aliases'               => ['joomigrate:delete-galleries'],
     ];
+
+
     return $items;
 }
 
@@ -59,6 +49,9 @@ function drush_joomigrate_delete_articles()
         ->condition('field_joomigrate_id', 0, '>')
         ->count()
         ->execute();
+
+    $c = count($siz);
+    drush_print('For delete: ' . $c);
 
     for($i=0; $i < $siz / 10; $i++)
     {
@@ -91,7 +84,10 @@ function drush_joomigrate_delete_channels()
         ->condition('field_joomigrate_id', 0, '>')
         ->execute();
 
-    if(count($ids) > 0){
+    $c = count($ids);
+    drush_print('For delete: ' . $c);
+
+    if($c > 0){
         entity_delete_multiple('taxonomy_term', $ids);
     }
     drush_print('All channels with `field_joomigrate_id` was deleted!');
@@ -111,7 +107,10 @@ function drush_joomigrate_delete_tags()
         ->condition('field_joomigrate_tag_id', 0, '>')
         ->execute();
 
-    if(count($ids) > 0){
+    $c = count($ids);
+    drush_print('For delete: ' . $c);
+
+    if($c > 0){
         entity_delete_multiple('taxonomy_term', $ids);
     }
     drush_print('All tags with `field_tag_joomigrate_id` was deleted!');
@@ -131,6 +130,9 @@ function drush_joomigrate_delete_images()
         ->condition('field_joomigrate_id', 0, '>')
         ->count()
         ->execute();
+
+    $c = count($siz);
+    drush_print('For delete: ' . $c);
 
     for($i=0; $i < $siz / 10; $i++)
     {
@@ -164,6 +166,9 @@ function drush_joomigrate_delete_galleries()
         ->count()
         ->execute();
 
+    $c = count($siz);
+    drush_print('For delete: ' . $c);
+
     for($i=0; $i < $siz / 10; $i++)
     {
         $ids = \Drupal::entityQuery('media')
@@ -196,10 +201,11 @@ function drush_joomigrate_delete_authors()
         ->condition('field_last_name', '')
         ->execute();
 
-    drush_print(var_export($ids));
+    $c = count($ids);
+    drush_print('For delete: ' . $c);
 
-    if(count($ids) > 0){
-        entity_delete_multiple('media', $ids);
+    if($c > 0){
+        entity_delete_multiple('user', $ids);
     }
     drush_print('All authors with `field_joomigrate_id` was deleted!');
 }
