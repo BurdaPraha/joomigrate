@@ -1,0 +1,5 @@
+services:
+  joomigrate.commands:
+    class: \Drupal\joomigrate\Commands\JoomigrateCommands
+    tags:
+      - { name: drush.command }

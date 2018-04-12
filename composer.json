@@ -1,21 +1,30 @@
 {
-  "name": "burdapraha/joomigrate",
-  "type": "drupal-module",
-  "description": "Experimental migration module for Drupal 8",
-  "minimum-stability": "dev",
-  "authors": [
-    {
-      "name": "Michal Landsman",
-      "email": "landsman@studioart.cz"
+    "name": "burdapraha/joomigrate",
+    "type": "drupal-module",
+    "description": "Experimental migration module for Drupal 8",
+    "minimum-stability": "dev",
+    "authors": [
+      {
+        "name": "Michal Landsman",
+        "email": "landsman@studioart.cz"
+      },
+      {
+        "name": "Nia Kathoni",
+        "email": "nikathone@gmail.com"
+      }
+    ],
+    "require": {
+        "php": ">=7.1.0",
+        "drush/drush": "^9.0.0",
+        "drupal/migrate_plus": "dev-4.x",
+        "drupal/migrate_tools": "dev-4.x",
+        "drupal/migrate_source_csv": "^2.0"
     },
-    {
-      "name": "Nia Kathoni",
-      "email": "nikathone@gmail.com"
+    "extra": {
+        "drush": {
+            "services": {
+                "drush.services.yml": "^9"
+            }
+        }
     }
-  ],
-  "require": {
-    "drupal/migrate_plus": "dev-4.x",
-    "drupal/migrate_tools": "dev-4.x",
-    "drupal/migrate_source_csv": "^2.0"
-  }
 }
