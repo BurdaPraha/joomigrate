@@ -10,6 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
  */
 function joomigrate_form_alter(&$form, FormStateInterface &$form_state, $form_id) {
   $sync_fields = [
+      'node_article_form'             => \Drupal\joomigrate\Entity\Article::$sync_field,
       'node_article_edit_form'        => \Drupal\joomigrate\Entity\Article::$sync_field,
       'media_image_edit_form'         => \Drupal\joomigrate\Entity\Image::$sync_field,
       'media_gallery_edit_form'       => \Drupal\joomigrate\Entity\Gallery::$sync_field,

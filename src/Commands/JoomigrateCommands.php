@@ -3,6 +3,7 @@
 namespace Drupal\joomigrate\Commands;
 
 use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
+use Drupal\Core\Entity\Entity;
 use Drupal\node\Entity\Node;
 use Drush\Commands\DrushCommands;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -47,10 +48,7 @@ class JoomigrateCommands extends DrushCommands {
    * @command joomigrate:delete:articles
    */
   public function articles() {
-    $entity = 'node';
-    $f = Article::$sync_field;
-    $d = \Drupal::entityQuery($entity)->condition('type', 'article')->exists($f)->condition($f, 0, '>')->execute();
-    $this->multipleDelete($d, $entity, $f);
+    $this->multipleDelete('node', Article::$sync_field, ['type', 'article']);
   }
 
 
@@ -60,10 +58,7 @@ class JoomigrateCommands extends DrushCommands {
    * @command joomigrate:delete:channels
    */
   public function channels() {
-    $entity = 'taxonomy_term';
-    $f = Channel::$sync_field;
-    $d = \Drupal::entityQuery($entity)->condition('vid', 'channel')->exists($f)->condition($f, 0, '>')->execute();
-    $this->multipleDelete($d, $entity, $f);
+    $this->multipleDelete('taxonomy_term', Channel::$sync_field, ['vid', 'channel']);
   }
 
 
@@ -73,10 +68,7 @@ class JoomigrateCommands extends DrushCommands {
    * @command joomigrate:delete:tags
    */
   public function tags() {
-    $entity = 'taxonomy_term';
-    $f = Tag::$sync_field;
-    $d = \Drupal::entityQuery($entity)->condition('vid', 'tags')->exists($f)->condition($f, 0, '>')->execute();
-    $this->multipleDelete($d, $entity, $f);
+    $this->multipleDelete('taxonomy_term', Tag::$sync_field, ['vid', 'tags']);
   }
 
   /**
@@ -85,10 +77,7 @@ class JoomigrateCommands extends DrushCommands {
    * @command joomigrate:delete:images
    */
   public function images() {
-    $entity = 'media';
-    $f = Image::$sync_field;
-    $d = \Drupal::entityQuery($entity)->condition('bundle', 'image')->exists($f)->condition($f, 0, '>')->execute();
-    $this->multipleDelete($d, $entity, $f);
+    $this->multipleDelete('media', Image::$sync_field, ['bundle', 'image']);
   }
 
   /**
@@ -97,10 +86,7 @@ class JoomigrateCommands extends DrushCommands {
    * @command joomigrate:delete:galleries
    */
   public function galleries() {
-    $entity = 'media';
-    $f = Gallery::$sync_field;
-    $d = \Drupal::entityQuery($entity)->condition('bundle', 'gallery')->exists($f)->condition($f, 0, '>')->execute();
-    $this->multipleDelete($d, $entity, $f);
+    $this->multipleDelete('media', Gallery::$sync_field, 'bundle', 'gallery');
   }
 
   /**
@@ -109,62 +95,56 @@ class JoomigrateCommands extends DrushCommands {
    * @command joomigrate:delete:authors
    */
   public function authors() {
-    $entity = 'user';
-    $f = Author::$sync_field;
-    $d = \Drupal::entityQuery($entity)->exists($f)->condition($f, 0, '>')->execute();
-    $this->multipleDelete($d, $entity, $f);
+    $this->multipleDelete('user', Author::$sync_field, null);
   }
 
 
   /**
-   * @param array $data
    * @param $entity_type
    * @param $sync_field
+   * @param null $condition
+   * @throws InvalidPluginDefinitionException
    */
-  private function multipleDelete(array $data, $entity_type, $sync_field) {
-    $c = count($data);
-    $p = [];
+  private function multipleDelete($entity_type, $sync_field, $condition = null)
+  {
+    $db = \Drupal::entityQuery($entity_type);
+    if($condition) $db->condition($condition[0], $condition[1]);
+    if($sync_field) $db->exists($sync_field)->condition($sync_field, 0, '>');
 
-    if(null == $c || $c == 0) {
+    $data = $db->execute();
+    $sum = count($data);
+    $deleted = 0;
+
+    if(null == $sum || $sum == 0) {
       $this->io()->warning("There is not entity with `{$sync_field}` field now");
       return;
     }
 
-    $this->io()->confirm("Delete {$c} items?");
-    $this->io()->progressStart($c);
+    $this->io()->confirm("Delete {$sum} items?");
+    $this->io()->progressStart($sum);
 
-    foreach ($data as $key => $id) {
-
-      /**
-       * @todo: because \Drupal::entityTypeManager()->getStorage($entity_type)->load($id); return RedirectResponse on few articles
-       */
-      switch ($entity_type)
-      {
-        case 'media':
-          $p['mid'] = $id;
-          break;
-
-        case 'user':
-          $p['uid'] = $id;
-          break;
-
-        default:
-          $p['nid'] = $id;
-          break;
-      }
-
-      try {
-        \Drupal::entityTypeManager()->getStorage($entity_type)->loadByProperties($p);
+    foreach ($data as $key => $id)
+    {
+      //$eid = 'media' == $entity_type ? 'mid' : 'user' == $entity_type ? 'uid' : 'nid';
+      /** @var Entity $entity */
+      $entity = \Drupal::entityTypeManager()->getStorage($entity_type); //->loadByProperties([$eid => $id])
+      $item = $entity->load($id);
+      if($item->delete()){
+        ++$deleted;
         $this->io()->progressAdvance();
-
-      } catch(InvalidPluginDefinitionException $e) {
-        $this->io()->error("Entity `{$entity_type}` not exist!");
+        $this->io()->comment("Deleting {$id}");
       }
+    }
 
+    if($sum !== $deleted){
+      $this->io()->newLine(2);
+      $this->io()->error("Deleted only {$deleted} from {$c}");
+      return;
     }
 
     $this->io()->progressFinish();
     $this->io()->success("All items with `{$sync_field}` are deleted now");
+    unset($data);
   }
 
 }

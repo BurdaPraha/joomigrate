@@ -180,6 +180,9 @@ class MediaFactory
         foreach (Helper::imagesFromString($data) as $img)
         {
             $media = self::image($img['src'], $img['alt'], "", $user_id, $article_id);
+            var_dump($media);
+            die;
+
             $p = Paragraph::create([
                 'id'          => NULL,
                 'type'        => 'image',
