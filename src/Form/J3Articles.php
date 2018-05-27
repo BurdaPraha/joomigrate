@@ -195,7 +195,15 @@ class J3Articles extends ExampleForm
             {
                 $node = Node::create($values);
                 $node->save();
-                drupal_set_message('Nid: '.$node->id().', name: "' . $data['title'] . '" - Created new article', 'success');
+
+                drupal_set_message(t(
+                  'NEW: nid: @id, title: <a href="@link">@name</a>',
+                  [
+                    "@id" => $node->id(),
+                    "@name" => $data['title'],
+                    "@link" => \Drupal\Core\Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString(),
+                  ]
+                ), 'success');
             }
             else
             {
