@@ -86,7 +86,7 @@ class JoomigrateCommands extends DrushCommands {
    * @command joomigrate:delete:galleries
    */
   public function galleries() {
-    $this->multipleDelete('media', Gallery::$sync_field, 'bundle', 'gallery');
+    $this->multipleDelete('media', Gallery::$sync_field, ['bundle', 'gallery']);
   }
 
   /**
@@ -95,7 +95,7 @@ class JoomigrateCommands extends DrushCommands {
    * @command joomigrate:delete:authors
    */
   public function authors() {
-    $this->multipleDelete('user', Author::$sync_field, null);
+    $this->multipleDelete('user', Author::$sync_field);
   }
 
 
@@ -116,29 +116,29 @@ class JoomigrateCommands extends DrushCommands {
     $deleted = 0;
 
     if(null == $sum || $sum == 0) {
-      $this->io()->warning("There is not entity with `{$sync_field}` field now");
+      $this->io()->warning("There is not `{$entity_type}` entity with `{$sync_field}` field now");
       return;
     }
 
-    $this->io()->confirm("Delete {$sum} items?");
+    $this->io()->confirm("Delete {$sum} items of `{$entity_type}`?");
     $this->io()->progressStart($sum);
 
     foreach ($data as $key => $id)
     {
       //$eid = 'media' == $entity_type ? 'mid' : 'user' == $entity_type ? 'uid' : 'nid';
       /** @var Entity $entity */
-      $entity = \Drupal::entityTypeManager()->getStorage($entity_type); //->loadByProperties([$eid => $id])
-      $item = $entity->load($id);
-      if($item->delete()){
-        ++$deleted;
-        $this->io()->progressAdvance();
-        $this->io()->comment("Deleting {$id}");
-      }
+      $em = \Drupal::entityTypeManager()->getStorage($entity_type); //->loadByProperties([$eid => $id])
+      $em->load($id)->delete();
+      ++$deleted;
+
+      $this->io()->progressAdvance();
+      $this->io()->comment("Deleting {$id}");
+      unset($em);
     }
 
     if($sum !== $deleted){
       $this->io()->newLine(2);
-      $this->io()->error("Deleted only {$deleted} from {$c}");
+      $this->io()->error("Deleted only {$deleted} from {$sum}");
       return;
     }
 
