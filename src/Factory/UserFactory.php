@@ -1,12 +1,14 @@
 <?php
+declare(strict_types=1);
 
 namespace Drupal\joomigrate\Factory;
+use Drupal\joomigrate\Entity\Author;
 
 /**
  * Class UserFactory
  * @package Drupal\joomigrate\Factory
  */
-class UserFactory extends BaseFactory
+class UserFactory
 {
     /**
      * Create user, author for imported article
@@ -22,7 +24,7 @@ class UserFactory extends BaseFactory
         }
 
         $findUser = \Drupal::entityTypeManager()->getStorage('user')->loadByProperties([
-            $this->sync_field_name => $cms_user_id
+            Author::$sync_field => $cms_user_id
         ]);
 
         if($findUser)
@@ -40,7 +42,7 @@ class UserFactory extends BaseFactory
         $user->setUsername($cms_user_id);
 
         // Optional.
-        $user->set($this->sync_field_name, $cms_user_id);
+        $user->set(Author::$sync_field, $cms_user_id);
 
         $user->set('init', 'email');
         $user->set('langcode', $language);

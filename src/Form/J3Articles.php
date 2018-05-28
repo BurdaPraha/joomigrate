@@ -1,7 +1,9 @@
 <?php
+declare(strict_types=1);
 
 namespace Drupal\joomigrate\Form;
 
+use Drupal\joomigrate\Entity\Article;
 use Drupal\joomigrate\Factory\ArticleFactory;
 use Drupal\node\Entity\Node;
 
@@ -70,11 +72,12 @@ class J3Articles extends ExampleForm
     }
 
 
-    /**
-     * @param $data
-     * @param $context
-     * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
-     */
+  /**
+   * @param $data
+   * @param $context
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   */
     public function processBatch($data, &$context)
     {
         $article = new ArticleFactory();
@@ -146,7 +149,7 @@ class J3Articles extends ExampleForm
             ];
 
             // sync
-            $values[$article->sync_field_name] = $data['id'];
+            $values[Article::$sync_field] = $data['id'];
 
 
             // main content
@@ -165,6 +168,15 @@ class J3Articles extends ExampleForm
                     $values['field_teaser_media'] = [
                         'target_id' => $media->id(),
                     ];
+                }else {
+                  drupal_set_message(t(
+                    'CHECK nid: @nid without teaser media - title: <a href="@link">@name</a>',
+                    [
+                      "@nid" => $node->id(),
+                      "@name" => $data['title'],
+                      "@link" => \Drupal\Core\Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString(),
+                    ]
+                  ), 'warning');
                 }
             }
 
@@ -197,9 +209,9 @@ class J3Articles extends ExampleForm
                 $node->save();
 
                 drupal_set_message(t(
-                  'NEW: nid: @id, title: <a href="@link">@name</a>',
+                  'NEW - nid: @nid, title: <a href="@link">@name</a>',
                   [
-                    "@id" => $node->id(),
+                    "@nid" => $node->id(),
                     "@name" => $data['title'],
                     "@link" => \Drupal\Core\Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString(),
                   ]
@@ -219,8 +231,8 @@ class J3Articles extends ExampleForm
 
 
             // use existing alias, @todo: test it!
-            $path = Helper::articleAlias($data['alias'], $node->id(), 'cs');
-            $node->set('path', $path['path']);
+            //$path = Helper::articleAlias($data['alias'], $node->id(), 'cs');
+            //$node->set('path', $path['path']);
 
             // save paragraphs
             $node->set('field_paragraphs', $paragraphs);
@@ -230,19 +242,32 @@ class J3Articles extends ExampleForm
         }
         else
         {
-            drupal_set_message($data['id'] . '(drupal nid: '.$node->id().') - skipped because was changed manually', 'warning');
+          drupal_set_message(t(
+            'SKIPPED: id: @id, nid: @nid because was changed manually: <a href="@link">@name</a>',
+            [
+              "@id" => $data['id'],
+              "@nid" => $node->id(),
+              "@name" => $data['title'],
+              "@link" => \Drupal\Core\Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString(),
+            ]
+          ), 'warning');
         }
 
         // validate process errors
+        /*
         if (!isset($context['results']['errors']))
         {
             $context['results']['errors'] = [];
         }
         else
         {
+            var_dump($context['results']['errors']);
+            die;
+
             // you can decide to create errors here comments codes below
-            $message = t('Data with @id was not synchronized', ['@id' => $data['id']]);
-            $context['results']['errors'][] = $message;
+            $context['results']['errors'][] = t('ERR: sync id: @id, article was not synchronized right', ['@id' => $data['id']]);
         }
+
+        */
     }
 }

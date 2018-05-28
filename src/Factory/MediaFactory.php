@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Drupal\joomigrate\Factory;
 
@@ -19,12 +20,12 @@ class MediaFactory
      * @return array|null
      * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
      */
-    public static function gallery($name, $pseudoJson, $alias, $article_id, $user_id = 1)
+    public static function gallery($name, $pseudoJson, $alias, $article_id, $user_id = 1): array
     {
         /*** Check existing gallery ****/
         $galleryExisting = \Drupal::entityQuery('media')
             ->condition('bundle', 'gallery')
-            ->condition('field_gallery_joomigrate_id', $article_id)
+            ->condition(\Drupal\joomigrate\Entity\Gallery::$sync_field, $article_id)
             ->condition('name', $name)
             ->execute();
 
@@ -69,16 +70,16 @@ class MediaFactory
 
             // create gallery
             $gallery_media = Media::create([
-                'bundle'              => 'gallery',
-                'uid'                 => $user_id,
-                'status'              => Media::PUBLISHED,
-                'name'                => $name,
-                'field_media_images'  => $images,
-                'field_gallery_joomigrate_id' => $article_id,
-                'path' => [
-                    'pathauto'  => 0,
-                    'alias'     => '/galerie/' . $alias
-                ]
+              'bundle'              => 'gallery',
+              'uid'                 => $user_id,
+              'status'              => Media::PUBLISHED,
+              'name'                => $name,
+              'field_media_images'  => $images,
+              'path' => [
+                  'pathauto'  => 0,
+                  'alias'     => '/gallery/' . $alias
+              ],
+              \Drupal\joomigrate\Entity\Gallery::$sync_field => $article_id,
             ]);
 
 
@@ -115,7 +116,7 @@ class MediaFactory
      * @param int $import_id int
      * @return int|mixed|null|string
      */
-    public static function image($path, $description = "", $credits = "", $user = 1, $import_id = 1)
+    public static function image($path, $description = "", $credits = "", $user = 1, $import_id = 1): Media
     {
         $image_name     = explode("/", $path);
         $image_name     = end($image_name);
@@ -131,7 +132,7 @@ class MediaFactory
         {
             $media_exist = \Drupal::entityQuery('media')
                 ->condition('field_image.target_id', end($file_exist))
-                ->condition('field_joomigrate_id', $import_id, '=')
+                ->condition(\Drupal\joomigrate\Entity\Image::$sync_field, $import_id, '=')
                 ->execute();
 
             if(end($media_exist))
@@ -145,21 +146,23 @@ class MediaFactory
         $file = FileFactory::make($path, $image_name, $import_id);
         if($file)
         {
-            $image_media = Media::create([
-                'bundle'                => 'image',
-                'uid'                   => $user,
-                'status'                => Media::PUBLISHED,
-                'field_joomigrate_id'   => substr($import_id, 0, 7),
-                'field_description' => $description,
-                'field_source'      => $credits,
-                'field_image'       => [
-                    'target_id' => $file->id(),
-                    //'alt'       => t('@alt', ['@alt' => substr($description, 0, 155)]),
-                ],
-            ]);
-            $image_media->setQueuedThumbnailDownload();
-            $image_media->save();
-            return $image_media;
+          $params = [
+            'bundle'                => 'image',
+            'uid'                   => $user,
+            'status'                => Media::PUBLISHED,
+            'field_description'     => $description,
+            'field_source'          => $credits,
+            'field_image'           => [
+              'target_id' => $file->id(),
+              //'alt'       => t('@alt', ['@alt' => substr($description, 0, 155)]),
+            ],
+            \Drupal\joomigrate\Entity\Image::$sync_field => substr((string) $import_id, 0, 7),
+          ];
+
+          $image_media = Media::create($params);
+          $image_media->setQueuedThumbnailDownload();
+          $image_media->save();
+          return $image_media;
         }
 
 
@@ -180,9 +183,8 @@ class MediaFactory
         foreach (Helper::imagesFromString($data) as $img)
         {
             $media = self::image($img['src'], $img['alt'], "", $user_id, $article_id);
-            var_dump($media);
-            die;
-
+            //var_dump($media);
+            //die;
             $p = Paragraph::create([
                 'id'          => NULL,
                 'type'        => 'image',

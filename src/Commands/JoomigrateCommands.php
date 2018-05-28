@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Drupal\joomigrate\Commands;
 
@@ -104,23 +105,32 @@ class JoomigrateCommands extends DrushCommands {
    * @param $sync_field
    * @param null $condition
    * @throws InvalidPluginDefinitionException
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   private function multipleDelete($entity_type, $sync_field, $condition = null)
   {
+    $confirm_cond = "";
     $db = \Drupal::entityQuery($entity_type);
-    if($condition) $db->condition($condition[0], $condition[1]);
-    if($sync_field) $db->exists($sync_field)->condition($sync_field, 0, '>');
+
+    if($condition){
+      $db->condition($condition[0], $condition[1]);
+      $confirm_cond = "(" . implode(' = ', $condition) . ") ";
+    }
+
+    if($sync_field){
+      $db->exists($sync_field)->condition($sync_field, 0, '>');
+    }
 
     $data = $db->execute();
     $sum = count($data);
     $deleted = 0;
 
     if(null == $sum || $sum == 0) {
-      $this->io()->warning("There is not `{$entity_type}` entity with `{$sync_field}` field now");
+      $this->io()->warning(t("There is not `{$entity_type}` entity with `{$sync_field}` field now"));
       return;
     }
 
-    $this->io()->confirm("Delete {$sum} items of `{$entity_type}`?");
+    $this->io()->confirm(t("Delete {$sum} items of entity `{$entity_type}` {$confirm_cond}... ?"));
     $this->io()->progressStart($sum);
 
     foreach ($data as $key => $id)
@@ -132,18 +142,18 @@ class JoomigrateCommands extends DrushCommands {
       ++$deleted;
 
       $this->io()->progressAdvance();
-      $this->io()->comment("Deleting {$id}");
+      //$this->io()->comment("Deleting {$id}");
       unset($em);
     }
 
     if($sum !== $deleted){
       $this->io()->newLine(2);
-      $this->io()->error("Deleted only {$deleted} from {$sum}");
+      $this->io()->error(t("Deleted only {$deleted} from {$sum} entity `{$entity_type}` items"));
       return;
     }
 
     $this->io()->progressFinish();
-    $this->io()->success("All items with `{$sync_field}` are deleted now");
+    $this->io()->success(t("All entity `{$entity_type}` items with `{$sync_field}` are deleted now"));
     unset($data);
   }
 

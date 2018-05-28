@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Drupal\joomigrate\Factory;
 
@@ -38,7 +39,7 @@ class TermFactory
      * @return \Drupal\Core\Entity\EntityInterface|mixed|null|static
      * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
      */
-    public static function channel($sync_field = 0, $name, $parent_id = null)
+    public static function channel($sync_field = 0, $name, $parent_id = null): Term
     {
         $existing = [];
         $term = null;
@@ -61,6 +62,7 @@ class TermFactory
         if(count($existing) > 0)
         {
             // use existing
+            /** @var Term $term */
             $term = end($existing);
 
             // update sync id if existing without it (manually created)
@@ -68,17 +70,40 @@ class TermFactory
             {
                 $term->set(self::$sync_field_channel, $sync_field);
                 $term->save();
-                drupal_set_message('tid: ' . $term->id() . ', name: ' . $name . ' - added sync_id: ' . $sync_field);
+
+                drupal_set_message(t(
+                  'Added sync_id: @sync_id for term tid: @tid, title: <a href="@link">@name</a>',
+                  [
+                    '@tid' => $term->id(),
+                    '@name' => $term->getName(),
+                    '@sync_id' => $sync_field,
+                    "@link" => \Drupal\Core\Url::fromRoute('entity.taxonomy_term.canonical', ['taxonomy_term' => $term->id()])->toString(),
+                  ]
+                ), 'success');
             }
 
-            drupal_set_message('tid: ' . $term->id() . ', name: ' . $name . ' - Used existing channel');
+            drupal_set_message(t(
+              'Used existing term - tid: @tid, title: <a href="@link">@name</a>',
+              [
+                '@tid' => $term->id(),
+                '@name' => $term->getName(),
+                "@link" => \Drupal\Core\Url::fromRoute('entity.taxonomy_term.canonical', ['taxonomy_term' => $term->id()])->toString(),
+              ]
+            ), 'success');
         }
         else
         {
             $term = Term::create($props);
             $term->save();
 
-            drupal_set_message('tid: ' . $term->id() . ', name: ' . $name . ' - Created new channel', 'success');
+            drupal_set_message(t(
+              'NEW channel - tid: @tid, title: <a href="@link">@name</a>',
+              [
+                '@tid' => $term->id(),
+                '@name' => $term->getName(),
+                "@link" => \Drupal\Core\Url::fromRoute('entity.taxonomy_term.canonical', ['taxonomy_term' => $term->id()])->toString(),
+              ]
+            ), 'success');
         }
 
 
@@ -92,7 +117,7 @@ class TermFactory
      * @param $pair_id
      * @return int|null|string
      */
-    public static function tag($name, $pair_id)
+    public static function tag($name, $pair_id): Term
     {
         // not exist
         $term = Term::create([
@@ -113,7 +138,7 @@ class TermFactory
      * @param $node_id
      * @return array
      */
-    public static function keywordsToTags($string, $node_id)
+    public static function keywordsToTags($string, $node_id): array
     {
         $variables = [];
 

@@ -1,13 +1,7 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: michal.landsman
- * Date: 12/04/2018
- * Time: 19:03
- */
+declare(strict_types=1);
 
 namespace Drupal\joomigrate\Entity;
-
 
 class Channel
 {

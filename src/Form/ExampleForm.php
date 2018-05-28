@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Drupal\joomigrate\Form;
 
@@ -226,7 +227,7 @@ class ExampleForm extends FormBase
      */
     public function submitForm(array &$form, FormStateInterface $form_state)
     {
-        ini_set('auto_detect_line_endings', true);
+        ini_set('auto_detect_line_endings', '1');
 
         $error_msg      = '';
         $valid_csv      = false;
@@ -507,6 +508,11 @@ class ExampleForm extends FormBase
             // An error occurred.
             // $operations contains the operations that remained unprocessed.
             $error_operation = reset($operations);
+
+            if(function_exists('bdump')){
+              bdump($error_operation);
+            }
+
             $message = \Drupal::translation()->translate('An error occurred while processing @error_operation with arguments: <pre>@arguments</pre>', [
                 '@error_operation' => $error_operation[0],
                 '@arguments' => print_r($error_operation[1], TRUE)

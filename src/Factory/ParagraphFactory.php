@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Drupal\joomigrate\Factory;
 
@@ -12,7 +13,7 @@ class ParagraphFactory
      * @param $string
      * @return array
      */
-    public static function parseTypes($string)
+    public static function parseTypes($string): array
     {
         $t = [];
 
@@ -68,7 +69,7 @@ class ParagraphFactory
      * @param $article_id
      * @return array|mixed
      */
-    public static function make($data, $user_id = 1, $article_id = 1)
+    public static function make($data, $user_id = 1, $article_id = 1): array
     {
         $p = [];
         $types = self::parseTypes($data);
@@ -106,9 +107,9 @@ class ParagraphFactory
      * @param $user_id
      * @return array|null
      */
-    public static function createText($string, $user_id)
+    public static function createText($string, $user_id): array
     {
-        $p = null;
+        $p = [];
         if(!empty($string) && strlen(strip_tags($string)) > 10)
         {
             // save
