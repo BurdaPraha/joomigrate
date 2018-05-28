@@ -8,21 +8,17 @@ Exported CSV you can upload at `domain.tld/joomigrate` (administrator permission
 [Example data from export](https://docs.google.com/spreadsheets/d/1UBDXlM2a7vT4wiriP7zhSmgu_1F8ehrTRjZwVVgwD5Y/edit?usp=sharing)
 
 ## Import
-Form for upload CSV file is available on `domain.tld/joomigrate`.
+Form for upload CSV file is available on `domain.tld/admin/config/development` and find your kind.
 
 ## Drush commands
 For develop and testing useful functions which can delete only imported content (you must have field_joomla_id)
-- `drush delete-all`
-- `drush delete-articles`
-- `drush delete-channels`
-- `drush delete-images`
-- `drush delete-galleries`
-- `drush delete-authors`
-
-## Our roadmap:
-- [ ] import from Joomla 3.x K2
-- [ ] import from Drupal 7
-- [ ] import from WordPress
+- `bin/drush joomigrate:delete:all`
+- `bin/drush joomigrate:delete:articles`
+- `bin/drush joomigrate:delete:channels`
+- `bin/drush joomigrate:delete:images`
+- `bin/drush joomigrate:delete:galleries`
+- `bin/drush joomigrate:delete:authors`
 
 ## Tools
-- [Joomla redirects export for .htaccess](/tools/joomla_redirects.php), you can use this file manually for your redirects export
+- [Joomla - redirects export for .htaccess](/tools/joomla_redirects.php), you can use this file manually for your redirects export
+- [Joomla - Move aliases & tags from SEF component to content table for better exporting to CSV](/tools/joomla_sefurls.php)
