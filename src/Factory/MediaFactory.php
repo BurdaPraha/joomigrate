@@ -9,18 +9,18 @@ use Drupal\paragraphs\Entity\Paragraph;
 
 class MediaFactory
 {
-    /**
-     * Gallery array with objects
-     *
-     * @param $name
-     * @param $pseudoJson
-     * @param $alias
-     * @param $article_id
-     * @param int $user_id
-     * @return array|null
-     * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
-     */
-    public static function gallery($name, $pseudoJson, $alias, $article_id, $user_id = 1): array
+  /**
+   * Gallery array with objects
+   * @param $name
+   * @param $pseudoJson
+   * @param $alias
+   * @param $article_id
+   * @param int $user_id
+   * @return array|null
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   */
+    public static function gallery($name, $pseudoJson, $alias, $article_id, $user_id = 1): ?array
     {
         /*** Check existing gallery ****/
         $galleryExisting = \Drupal::entityQuery('media')
@@ -106,16 +106,16 @@ class MediaFactory
     }
 
 
-    /**
-     * Create file from existing source and media picture or use existing by name
-     *
-     * @param $path
-     * @param $description string
-     * @param $credits string
-     * @param $user int
-     * @param int $import_id int
-     * @return int|mixed|null|string
-     */
+  /**
+   * Create file from existing source and media picture or use existing by name
+   * @param $path
+   * @param string $description
+   * @param string $credits
+   * @param int $user
+   * @param int $import_id
+   * @return Media
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   */
     public static function image($path, $description = "", $credits = "", $user = 1, $import_id = 1): Media
     {
         $image_name     = explode("/", $path);
@@ -170,39 +170,38 @@ class MediaFactory
     }
 
 
-    /**
-     * @param $data
-     * @param $user_id
-     * @param $article_id
-     * @return array
-     */
-    public static function replaceInlineMedia($data, $user_id, $article_id)
+  /**
+   * @param $data
+   * @param $user_id
+   * @param $article_id
+   * @return array
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   */
+    public static function replaceInlineMedia($data, $user_id, $article_id): ?array
     {
-        $paragraphs = [];
+      $paragraphs = [];
 
-        foreach (Helper::imagesFromString($data) as $img)
-        {
-            $media = self::image($img['src'], $img['alt'], "", $user_id, $article_id);
-            //var_dump($media);
-            //die;
-            $p = Paragraph::create([
-                'id'          => NULL,
-                'type'        => 'image',
-                'uid'         => $user_id,
-                'field_image'  => [
-                    'target_id'   => $media->id(),
-                ],
-            ]);
-            $p->isNew();
-            $p->save();
+      foreach (Helper::imagesFromString($data) as $img)
+      {
+        $media = self::image($img['src'], $img['alt'], "", $user_id, $article_id);
+        $p = Paragraph::create([
+          'id'          => NULL,
+          'type'        => 'image',
+          'uid'         => $user_id,
+          'field_image'  => [
+            'target_id'   => $media->id(),
+          ],
+        ]);
+        $p->isNew();
+        $p->save();
 
-            $paragraphs[] = [
-                'target_id' => $p->id(),
-                'target_revision_id' => $p->getRevisionId()
-            ];
-        }
+        $paragraphs[] = [
+          'target_id' => $p->id(),
+          'target_revision_id' => $p->getRevisionId()
+        ];
+      }
 
 
-        return $paragraphs;
+      return $paragraphs;
     }
 }

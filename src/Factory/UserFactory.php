@@ -10,26 +10,26 @@ use Drupal\joomigrate\Entity\Author;
  */
 class UserFactory
 {
-    /**
-     * Create user, author for imported article
-     *
-     * @param $cms_user_id
-     * @return int|null|string
-     * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
-     */
-    public function make($cms_user_id)
+  /**
+   * Create user, author for imported article
+   * @param $cms_user_id
+   * @return int|null|string
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   */
+    public function make(int $cms_user_id): int
     {
         if(empty($cms_user_id) || null == $cms_user_id){
             $cms_user_id = 1;
         }
 
-        $findUser = \Drupal::entityTypeManager()->getStorage('user')->loadByProperties([
-            Author::$sync_field => $cms_user_id
-        ]);
+        $findUser = \Drupal::entityTypeManager()
+          ->getStorage('user')
+          ->loadByProperties([Author::$sync_field => $cms_user_id]);
 
         if($findUser)
         {
-            return end($findUser)->id();
+          return end($findUser)->id();
         }
 
         $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
@@ -38,7 +38,9 @@ class UserFactory
         // Mandatory.
         $user->setPassword(time());
         $user->enforceIsNew();
-        $user->setEmail(time() . "@studioart.cz");
+
+        /** @todo: think about setup to domain */
+        $user->setEmail("joomigrate-id-{$cms_user_id}-" . time() . "@studioart.cz");
         $user->setUsername($cms_user_id);
 
         // Optional.
